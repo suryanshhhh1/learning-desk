@@ -5,9 +5,9 @@
 
 window.APP_CONFIG = {
   // Paste the Apps Script web app URL here (it ends in /exec).
-  API_URL: "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE",
+  API_URL: "https://script.google.com/macros/s/AKfycbz0hz6mK66WgGQSq7uuWxTuSAJaRKLdLDVKeFvWdqdanjZB3W3q8IvIU3NIzOu-jlmV/exec",
 
   // true  = use a fake backend inside the browser (for testing, no Google needed).
   // false = use the real Google Sheet backend at API_URL.
-  MOCK: true
+  MOCK: false
 };

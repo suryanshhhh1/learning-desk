@@ -446,7 +446,8 @@ function setup() {
   getSheet('Users').getRange('B:B').setNumberFormat('@');
 
   if (readRows('Users').length === 0) {
-    appendRow('Users', { name: 'Anushka', pin: '0000', active: true });
+    // The leading apostrophe keeps 0000 as text instead of the number 0.
+    appendRow('Users', { name: 'Anushka', pin: "'0000", active: true });
   }
 
   var existingKeys = readRows('Settings').map(function (r) { return String(r.key); });
