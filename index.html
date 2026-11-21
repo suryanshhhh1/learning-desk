@@ -9,70 +9,123 @@
 <body>
   <div class="wrap">
 
-    <!-- Login screen -->
-    <section id="login" class="login-box hidden">
-      <h1>NABH Onboarding</h1>
-      <p class="muted">Log in with your name and PIN.</p>
-      <div id="message" class="message hidden"></div>
-      <form id="loginForm" autocomplete="on">
-        <label for="name">Name</label>
-        <input type="text" id="name" name="name" autocomplete="username" required>
-        <label for="pin">PIN</label>
-        <input type="password" id="pin" name="pin" inputmode="numeric" autocomplete="current-password" required>
-        <button type="submit" class="btn full" id="loginBtn">Log in</button>
-      </form>
-    </section>
-
-    <!-- Dashboard -->
-    <section id="dashboard" class="hidden">
-      <div class="topbar">
-        <span class="muted" id="programTitle">NABH Onboarding</span>
-        <button type="button" class="linklike" id="logoutBtn">Log out</button>
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span><span class="mono" id="brandTitle">NABH Onboarding</span></a>
+      <div class="topbar-right">
+        <button type="button" class="btn small hidden" id="logoutBtn">Log out</button>
       </div>
-      <h1 id="greeting">Hi</h1>
-      <p class="muted" id="subheading">NABH Onboarding</p>
-      <p id="summary" class="small"></p>
-      <div class="progress-bar"><div id="bar" style="width:0%"></div></div>
-      <div id="cards" class="cards"></div>
-    </section>
+    </header>
 
-    <p id="loading" class="muted">Loading...</p>
+    <!-- ===================== Login ===================== -->
+    <main id="login" class="hidden">
+      <section class="login-hero">
+        <div class="dots dot-xl" data-align="center" data-dots="READ. TEST." data-label="Read. Test. Unlock."></div>
+        <div class="flow" aria-hidden="true">
+          <span class="pill">Read</span><i></i><span class="pill">Test</span><i></i><span class="pill">Pass</span><i></i><span class="pill dark">Next</span>
+        </div>
+        <div class="dots dot-xl" data-align="center" data-dots="UNLOCK." aria-hidden="true"></div>
+      </section>
+
+      <section class="panel login-box">
+        <p class="lede">Log in. <span class="tone">Use your name and PIN.</span></p>
+        <div id="message" class="message hidden" role="alert" aria-live="assertive"></div>
+        <form id="loginForm" autocomplete="on">
+          <label class="field" for="name">Name</label>
+          <input type="text" id="name" name="name" autocomplete="username" required>
+          <label class="field" for="pin">PIN</label>
+          <input type="password" id="pin" name="pin" inputmode="numeric" autocomplete="current-password" required>
+          <button type="submit" class="btn full has-ico" id="loginBtn"><span class="ico" aria-hidden="true"></span><span>Log in</span></button>
+        </form>
+      </section>
+    </main>
+
+    <!-- ===================== Dashboard ===================== -->
+    <main id="dashboard" class="hidden">
+      <section class="hero">
+        <h1 class="visually-hidden" id="greetingText">Hi</h1>
+        <div class="dots dot-xl" id="greeting" aria-hidden="true"></div>
+        <p class="lede"><span id="subheading">NABH Onboarding.</span> <span class="tone">Read each module, pass its test, and the next one opens.</span></p>
+      </section>
+
+      <section class="panel stats" aria-label="Progress">
+        <div class="stat">
+          <div class="dots dot-lg" id="statDone" aria-hidden="true"></div>
+          <div>
+            <p class="label" id="summary"></p>
+            <div class="segments" id="segments" role="progressbar" aria-valuemin="0" style="margin-top:10px"></div>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="dots dot-lg" id="statPass" aria-hidden="true"></div>
+          <p class="label" id="passLabel">Pass mark for every test</p>
+        </div>
+        <div class="stat next">
+          <p id="nextText"></p>
+          <a class="btn light has-ico hidden" id="nextBtn" href="#"><span class="ico" aria-hidden="true"></span><span id="nextBtnText">Continue</span></a>
+        </div>
+      </section>
+
+      <section class="cabinet" aria-labelledby="modulesHeading">
+        <div class="section-head">
+          <h2 class="pill" id="modulesHeading" style="margin:0">Modules</h2>
+          <span class="pill" id="moduleRange">01 - 14</span>
+        </div>
+        <p class="note" id="drawerNote" role="status" aria-live="polite"></p>
+        <div class="drawer" id="drawer"></div>
+        <div class="drawer-front" aria-hidden="true">
+          <span class="handle"></span>
+          <span class="mono" id="drawerCount"></span>
+        </div>
+      </section>
+    </main>
+
+    <p id="loading" class="loading">Loading</p>
   </div>
 
   <script src="js/config.js"></script>
   <script src="js/mock.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/dots.js"></script>
   <script>
     (function () {
       var $ = function (id) { return document.getElementById(id); };
+      var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+
+      // Horizontal position of each folder tab, so they stagger like files.
+      var OFFSETS_WIDE = [6, 40, 20, 48, 2, 30, 12, 44, 24, 0, 36, 16, 46, 8];
+      var OFFSETS_NARROW = [0, 14, 5, 12, 2, 10, 14, 3, 11, 6, 14, 1, 9, 13];
 
       // ---------- Login ----------
       function showLogin() {
         $("loading").classList.add("hidden");
         $("dashboard").classList.add("hidden");
+        $("logoutBtn").classList.add("hidden");
         $("login").classList.remove("hidden");
-        if (App.param("expired")) App.showMessage("Your session has expired. Please log in again.");
+        DotText.renderAll();
+        if (App.param("expired")) App.showMessage("Your session has ended. Please log in again.");
         $("name").focus();
       }
 
       $("loginForm").addEventListener("submit", async function (e) {
         e.preventDefault();
         App.showMessage("");
-        $("loginBtn").disabled = true;
-        $("loginBtn").textContent = "Logging in...";
+        var btn = $("loginBtn");
+        btn.disabled = true;
+        btn.lastElementChild.textContent = "Logging in";
         var res = await Api.call("login", { name: $("name").value.trim(), pin: $("pin").value.trim() });
-        $("loginBtn").disabled = false;
-        $("loginBtn").textContent = "Log in";
-        if (!res.ok) { App.showMessage(res.error, true); return; }
+        btn.disabled = false;
+        btn.lastElementChild.textContent = "Log in";
+        if (!res.ok) { App.showMessage(res.error, true); $("pin").select(); return; }
         Api.saveSession(res.token, res.name);
+        $("pin").value = "";
         history.replaceState(null, "", "index.html");
         showDashboard();
       });
 
       $("logoutBtn").addEventListener("click", function () {
         Api.clearSession();
-        showLogin();
+        window.location.replace("index.html");
       });
 
       // ---------- Dashboard ----------
@@ -86,74 +139,114 @@
         if (!res.ok) { $("loading").textContent = res.error; return; }
 
         var name = res.name || Api.getName();
-        $("greeting").textContent = "Hi " + name;
-        $("subheading").textContent = manifest.programTitle;
-        $("programTitle").textContent = manifest.programTitle;
-        document.title = manifest.programTitle;
-
         var items = App.moduleStatuses(manifest.modules, res.progress);
         var done = items.filter(function (i) { return i.status === "completed"; }).length;
         var total = items.length;
-        $("summary").textContent = done + " of " + total + " modules completed";
-        $("bar").style.width = Math.round((done / total) * 100) + "%";
+        var passPct = (res.settings && res.settings.passPercent) || 85;
 
-        var cards = $("cards");
-        cards.innerHTML = "";
-        items.forEach(function (item) { cards.appendChild(renderCard(item)); });
+        document.title = manifest.programTitle;
+        $("brandTitle").textContent = manifest.programTitle;
+        $("subheading").textContent = manifest.programTitle + ".";
+        $("greetingText").textContent = "Hi " + name;
+        $("summary").textContent = done + " of " + total + " modules completed";
+        $("moduleRange").textContent = "01 - " + pad(total);
+        $("drawerCount").textContent = pad(done) + " / " + pad(total) + " completed";
+
+        // Segmented progress bar, one segment per module
+        var seg = $("segments");
+        seg.innerHTML = items.map(function (i) { return "<span class='seg" + (i.status === "completed" ? " on" : "") + "'></span>"; }).join("");
+        seg.setAttribute("aria-valuemax", total);
+        seg.setAttribute("aria-valuenow", done);
+        seg.setAttribute("aria-label", done + " of " + total + " modules completed");
+
+        // "Next up" panel: the module she should work on now
+        var next = items.find(function (i) { return i.status === "open" || i.status === "testReady"; });
+        if (next) {
+          var started = App.getReadState(next.module.id).maxSeen >= 0;
+          $("nextText").textContent = "Next up: Module " + next.module.id + ", " + next.module.title + ".";
+          $("nextBtnText").textContent = next.status === "testReady" ? "Take the test" : (started ? "Continue" : "Start");
+          $("nextBtn").href = linkFor(next);
+          $("nextBtn").classList.remove("hidden");
+        } else {
+          $("nextText").textContent = done === total ? "All modules completed." : "New modules are coming soon.";
+          $("nextBtn").classList.add("hidden");
+        }
+
+        renderDrawer(items);
 
         $("loading").classList.add("hidden");
         $("dashboard").classList.remove("hidden");
+        $("logoutBtn").classList.remove("hidden");
+
+        // Dot-matrix text needs the element to be visible to measure its width.
+        DotText.render($("greeting"), "Hi " + name + ".");
+        DotText.render($("statDone"), pad(done) + "/" + pad(total));
+        DotText.render($("statPass"), passPct + "%");
       }
 
-      function renderCard(item) {
-        var mod = item.module;
-        var card = document.createElement("button");
-        card.type = "button";
-        card.className = "card";
+      function linkFor(item) {
+        if (item.status === "testReady") return "test.html?id=" + item.module.id;
+        if (item.status === "completed" || item.status === "open") return "module.html?id=" + item.module.id;
+        return null;
+      }
 
-        var statusText, actionText = "", reason = "", href = null;
-        switch (item.status) {
-          case "completed":
-            statusText = "<span class='sym'>&#10003;</span>Completed, best score " + App.escapeHtml(item.progress.bestScorePct) + "%";
-            actionText = "Review";
-            href = "module.html?id=" + mod.id;
-            break;
-          case "testReady":
-            statusText = "Test ready";
-            actionText = "Take test";
-            href = "test.html?id=" + mod.id;
-            break;
-          case "open":
-            statusText = "Open";
-            actionText = App.getReadState(mod.id).maxSeen >= 0 ? "Continue" : "Start";
-            href = "module.html?id=" + mod.id;
-            break;
-          case "locked":
-            statusText = "<span class='sym'>&#9633;</span>Locked";
-            reason = "Pass Module " + (mod.id - 1) + " to unlock this module.";
-            card.classList.add("inactive");
-            break;
-          default: // comingSoon
-            statusText = "Coming soon";
-            reason = "This module has not been published yet.";
-            card.classList.add("inactive");
-        }
+      function renderDrawer(items) {
+        var drawer = $("drawer");
+        var wide = window.matchMedia("(min-width: 720px)").matches;
+        drawer.innerHTML = "";
 
-        card.innerHTML =
-          "<div class='num'>Module " + mod.id + "</div>" +
-          "<div class='title'>" + App.escapeHtml(mod.title) + "</div>" +
-          "<div class='status'><span>" + statusText + "</span><span class='action'>" + actionText + "</span></div>" +
-          "<div class='reason muted hidden'></div>";
+        items.forEach(function (item, i) {
+          var mod = item.module;
+          var meta, reason = "";
+          switch (item.status) {
+            case "completed": meta = "&#10003; " + App.escapeHtml(item.progress.bestScorePct) + "%"; break;
+            case "testReady": meta = "Test ready"; break;
+            case "open": meta = App.getReadState(mod.id).maxSeen >= 0 ? "Continue" : "Start"; break;
+            case "locked":
+              meta = "<span class='lock' aria-hidden='true'></span>Locked";
+              reason = "Module " + mod.id + " is locked. Pass Module " + (mod.id - 1) + " to unlock it.";
+              break;
+            default:
+              meta = "Soon";
+              reason = "Module " + mod.id + " has not been published yet.";
+          }
 
-        card.addEventListener("click", function () {
-          if (href) { window.location.href = href; return; }
-          // Locked or coming soon: do nothing except show the reason.
-          var r = card.querySelector(".reason");
-          r.textContent = reason;
-          r.classList.remove("hidden");
+          var statusWords = { completed: "completed, best score " + item.progress.bestScorePct + "%", testReady: "test ready", open: "open", locked: "locked", comingSoon: "coming soon" }[item.status];
+          var folder = document.createElement("button");
+          folder.type = "button";
+          folder.className = "folder s-" + item.status;
+          folder.style.zIndex = i + 1;
+          folder.style.setProperty("--x", (wide ? OFFSETS_WIDE : OFFSETS_NARROW)[i % 14] + "%");
+          folder.setAttribute("aria-label", "Module " + mod.id + ": " + mod.title + ", " + statusWords);
+          folder.innerHTML =
+            "<span class='tab'>" +
+              "<span class='t-num'>" + pad(mod.id) + "</span>" +
+              "<span class='t-title'>" + App.escapeHtml(mod.title) + "</span>" +
+              "<span class='t-meta'>" + meta + "</span>" +
+            "</span><span class='sheet'></span>";
+
+          folder.addEventListener("click", function () {
+            var href = linkFor(item);
+            if (href) { window.location.href = href; return; }
+            // Locked or coming soon: nothing opens, just say why.
+            $("drawerNote").textContent = reason;
+          });
+          drawer.appendChild(folder);
         });
-        return card;
+        drawer.dataset.wide = wide;
       }
+
+      // Re-stagger the tabs if the screen crosses the phone/desktop width.
+      window.addEventListener("resize", function () {
+        var wide = window.matchMedia("(min-width: 720px)").matches;
+        var drawer = $("drawer");
+        if (drawer.dataset.wide !== String(wide)) {
+          drawer.querySelectorAll(".folder").forEach(function (f, i) {
+            f.style.setProperty("--x", (wide ? OFFSETS_WIDE : OFFSETS_NARROW)[i % 14] + "%");
+          });
+          drawer.dataset.wide = wide;
+        }
+      });
 
       // ---------- Start ----------
       if (Api.getToken()) showDashboard(); else showLogin();

@@ -13,6 +13,10 @@ window.Api = (function () {
   var TOKEN_KEY = "nabh.token";
   var NAME_KEY = "nabh.name";
 
+  // Previews on this computer (localhost) always use the test backend,
+  // so local testing never touches the real Google Sheet.
+  var useMock = APP_CONFIG.MOCK || /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+
   function getToken() { return localStorage.getItem(TOKEN_KEY); }
   function getName() { return localStorage.getItem(NAME_KEY); }
 
@@ -30,7 +34,7 @@ window.Api = (function () {
     var body = Object.assign({ action: action, token: getToken() }, data || {});
     var result;
 
-    if (APP_CONFIG.MOCK) {
+    if (useMock) {
       result = await MockBackend.handle(body);
     } else {
       try {

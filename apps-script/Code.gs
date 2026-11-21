@@ -92,6 +92,7 @@ function login(req) {
   var token = Utilities.getUuid();
   props.setProperty('token_' + token, JSON.stringify({
     name: String(user.name).trim(),
+    pinHash: pinHash(user.pin),   // a changed PIN ends this session
     expires: Date.now() + SESSION_HOURS * 3600 * 1000
   }));
   return { ok: true, token: token, name: String(user.name).trim() };
@@ -324,11 +325,19 @@ function checkToken(token) {
   var raw = props.getProperty('token_' + token);
   if (!raw) return null;
   var data = JSON.parse(raw);
-  if (data.expires < Date.now()) {
+  // End the session if it expired, the user was turned off, or the PIN changed.
+  var user = readRows('Users').filter(function (u) { return sameName(u.name, data.name); })[0];
+  if (data.expires < Date.now() || !user || !isTrue(user.active) || data.pinHash !== pinHash(user.pin)) {
     props.deleteProperty('token_' + token);
     return null;
   }
   return data.name;
+}
+
+// One-way fingerprint of a PIN, so the PIN itself is not kept in the session.
+function pinHash(pin) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(pin).trim());
+  return bytes.map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
 }
 
 function cleanExpiredTokens(props) {

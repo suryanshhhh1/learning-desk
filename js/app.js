@@ -7,11 +7,24 @@ window.App = (function () {
   // Send the user to the login page if there is no saved session.
   function requireLogin() {
     if (!Api.getToken()) {
-      window.location.href = "index.html";
+      window.location.replace("index.html");
       return false;
     }
     return true;
   }
+
+  // Browsers keep recent pages in a back/forward cache, so pressing Back
+  // after logging out could show an old page without loading it again.
+  // When a page is shown from that cache, check the session again.
+  window.addEventListener("pageshow", function (e) {
+    if (!e.persisted) return;
+    var onLoginPage = /index\.html$|\/$/.test(window.location.pathname);
+    if (!Api.getToken() && !onLoginPage) {
+      window.location.replace("index.html");
+    } else {
+      window.location.reload();
+    }
+  });
 
   // Read a ?key=value from the page URL.
   function param(key) {

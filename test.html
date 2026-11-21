@@ -8,43 +8,65 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <a href="index.html">&larr; Dashboard</a>
-      <span class="muted" id="answeredCount"></span>
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span><span class="mono">NABH Onboarding</span></a>
+      <div class="topbar-right">
+        <a class="btn small light" href="index.html">Dashboard</a>
+      </div>
+    </header>
+
+    <div class="reading">
+      <div id="message" class="message hidden" role="alert" aria-live="assertive"></div>
+      <p id="loading" class="loading">Preparing your test</p>
+
+      <!-- ===================== Questions ===================== -->
+      <section id="testView" class="hidden">
+        <header class="test-head">
+          <div class="row"><span class="pill dark" id="modPill">Module</span><span class="pill" id="countPill"></span></div>
+          <div class="dots dot-xl" data-dots="TEST." aria-hidden="true"></div>
+          <h1 class="lede"><span id="testTitle"></span> <span class="tone">Choose one answer for each question.</span></h1>
+        </header>
+
+        <form id="testForm"></form>
+
+        <div class="panel submit-bar">
+          <div class="row">
+            <span class="mono" id="answeredCount" aria-live="polite"></span>
+            <span class="mono muted" id="passNote"></span>
+          </div>
+          <div class="segments" id="segments" aria-hidden="true"></div>
+          <p class="hint" id="submitHint"></p>
+          <button type="button" class="btn full has-ico" id="submitBtn" disabled><span class="ico" aria-hidden="true"></span><span>Submit</span></button>
+        </div>
+      </section>
+
+      <!-- ===================== Result ===================== -->
+      <section id="resultView" class="hidden">
+        <div class="panel result-head">
+          <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+            <span class="pill dark" id="resultPill"></span><span class="pill" id="attemptPill"></span>
+          </div>
+          <h1 class="visually-hidden" id="scoreText"></h1>
+          <div class="dots dot-xl" id="score" aria-hidden="true"></div>
+          <p class="mono muted" id="scoreDetail"></p>
+          <p class="result-line" id="resultLine"></p>
+          <div class="actions" id="resultActions"></div>
+        </div>
+
+        <h2 class="pill review-head">Review</h2>
+        <div id="review"></div>
+        <div class="actions" id="resultActionsBottom"></div>
+      </section>
     </div>
-
-    <div id="message" class="message hidden"></div>
-    <p id="loading" class="muted">Preparing your test...</p>
-
-    <!-- Questions -->
-    <section id="testView" class="hidden">
-      <h1 id="testTitle"></h1>
-      <p class="muted small" id="testInfo"></p>
-      <form id="testForm"></form>
-      <button type="button" class="btn full" id="submitBtn" disabled>Submit</button>
-      <p class="muted small" id="submitHint">Answer every question to enable Submit.</p>
-    </section>
-
-    <!-- Result -->
-    <section id="resultView" class="hidden">
-      <p class="muted" id="resultTitle"></p>
-      <div class="score" id="score"></div>
-      <p class="muted" id="scoreDetail"></p>
-      <p class="result-line" id="resultLine"></p>
-      <div class="actions" id="resultActions"></div>
-      <h2>Review</h2>
-      <div id="review"></div>
-      <div class="actions" id="resultActionsBottom"></div>
-    </section>
   </div>
 
   <!-- Confirmation dialog -->
-  <div class="overlay hidden" id="confirmBox" role="dialog" aria-modal="true">
-    <div class="dialog">
-      <p><strong>Submit your answers?</strong></p>
-      <p class="muted small">You cannot change them after submitting.</p>
+  <div class="overlay hidden" id="confirmBox" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+    <div class="panel dialog">
+      <p id="confirmTitle"><strong>Submit your answers?</strong></p>
+      <p class="muted small" id="confirmText">You cannot change them after submitting.</p>
       <div class="actions">
-        <button type="button" class="btn secondary" id="cancelBtn">Cancel</button>
+        <button type="button" class="btn light" id="cancelBtn">Cancel</button>
         <button type="button" class="btn" id="confirmBtn">Submit</button>
       </div>
     </div>
@@ -54,19 +76,23 @@
   <script src="js/mock.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/dots.js"></script>
   <script>
     (async function () {
       if (!App.requireLogin()) return;
       var $ = function (id) { return document.getElementById(id); };
+      var pad = function (n) { return (n < 10 ? "0" : "") + n; };
       var moduleId = Number(App.param("id"));
+      var submitted = false;
 
       var manifest = await App.loadManifest();
       var mod = manifest.modules.find(function (m) { return m.id === moduleId; });
-      var modTitle = mod ? "Module " + mod.id + ": " + mod.title : "Module " + moduleId;
-      document.title = "Test: " + modTitle;
+      var modTitle = mod ? mod.title : "Module " + moduleId;
+      document.title = "Test: Module " + moduleId;
+      $("modPill").textContent = "Module " + pad(moduleId);
 
-      // Ask the server for a new set of questions. The server checks the module
-      // is unlocked and has been read. No answers are sent to the browser here.
+      // Ask the server for a new set of questions. It checks the module is
+      // unlocked and has been read. No answers are sent to the browser here.
       var test = await Api.call("startTest", { moduleId: moduleId });
       $("loading").classList.add("hidden");
       if (!test.ok) {
@@ -78,20 +104,23 @@
       }
 
       // ---------- Show the questions ----------
-      $("testTitle").textContent = "Test: " + modTitle;
-      $("testInfo").textContent = test.questions.length + " questions. Choose one answer for each.";
+      var total = test.questions.length;
+      $("testTitle").textContent = modTitle + ".";
+      $("countPill").textContent = total + " questions";
       var form = $("testForm");
       test.questions.forEach(function (q, i) {
-        var div = document.createElement("div");
-        div.className = "question";
-        var html = "<div class='q'>" + (i + 1) + ". " + App.escapeHtml(q.question) + "</div>";
+        var fs = document.createElement("fieldset");
+        fs.className = "panel question";
+        fs.id = "q-" + i;
+        var html = "<legend><span class='pill'>Q" + pad(i + 1) + "</span>" + App.escapeHtml(q.question) + "</legend>";
         q.options.forEach(function (o) {
           html += "<label class='option'><input type='radio' name='" + App.escapeHtml(q.questionId) + "' value='" + o.key + "'><span>" + App.escapeHtml(o.text) + "</span></label>";
         });
-        div.innerHTML = html;
-        form.appendChild(div);
+        fs.innerHTML = html;
+        form.appendChild(fs);
       });
       $("testView").classList.remove("hidden");
+      DotText.renderAll();
 
       function collectAnswers() {
         var answers = {};
@@ -102,32 +131,73 @@
         return answers;
       }
 
-      function updateCount() {
-        var n = Object.keys(collectAnswers()).length;
-        var all = n === test.questions.length;
-        $("answeredCount").textContent = n + " of " + test.questions.length + " answered";
-        $("submitBtn").disabled = !all;
-        $("submitHint").classList.toggle("hidden", all);
+      function update() {
+        var answers = collectAnswers();
+        var missing = [];
+        test.questions.forEach(function (q, i) {
+          var done = !!answers[q.questionId];
+          $("q-" + i).classList.toggle("answered", done);
+          if (!done) missing.push(i + 1);
+        });
+        // Mark the chosen option (works in browsers without :has()).
+        form.querySelectorAll(".option").forEach(function (l) {
+          l.classList.toggle("checked", l.querySelector("input").checked);
+        });
+        var n = total - missing.length;
+        $("answeredCount").textContent = n + " of " + total + " answered";
+        $("segments").innerHTML = test.questions.map(function (q) {
+          return "<span class='seg" + (answers[q.questionId] ? " on" : "") + "'></span>";
+        }).join("");
+        $("submitBtn").disabled = missing.length > 0;
+        $("submitHint").textContent = missing.length === 0
+          ? "All questions answered."
+          : "Not answered yet: " + missing.map(function (m) { return "Q" + pad(m); }).join(", ") + ".";
       }
-      form.addEventListener("change", updateCount);
-      updateCount();
+      form.addEventListener("change", update);
+      update();
 
-      // ---------- Submit with confirmation ----------
-      $("submitBtn").addEventListener("click", function () { $("confirmBox").classList.remove("hidden"); });
-      $("cancelBtn").addEventListener("click", function () { $("confirmBox").classList.add("hidden"); });
+      // Warn before leaving the page with answers that were not submitted.
+      window.addEventListener("beforeunload", function (e) {
+        if (!submitted && Object.keys(collectAnswers()).length > 0) { e.preventDefault(); e.returnValue = ""; }
+      });
+
+      // ---------- Confirmation dialog ----------
+      var box = $("confirmBox");
+      function openDialog() {
+        box.classList.remove("hidden");
+        $("cancelBtn").focus();
+      }
+      function closeDialog() {
+        box.classList.add("hidden");
+        $("submitBtn").focus();
+      }
+      $("submitBtn").addEventListener("click", openDialog);
+      $("cancelBtn").addEventListener("click", closeDialog);
+      box.addEventListener("click", function (e) { if (e.target === box) closeDialog(); });
+      box.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") { closeDialog(); return; }
+        if (e.key === "Tab") {
+          // Keep keyboard focus inside the dialog.
+          var first = $("cancelBtn"), last = $("confirmBtn");
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      });
 
       $("confirmBtn").addEventListener("click", async function () {
-        $("confirmBtn").disabled = true;
-        $("confirmBtn").textContent = "Submitting...";
+        var btn = $("confirmBtn");
+        btn.disabled = true;
+        btn.textContent = "Submitting";
         var r = await Api.call("submitTest", { attemptId: test.attemptId, answers: collectAnswers() });
-        $("confirmBox").classList.add("hidden");
+        box.classList.add("hidden");
         if (!r.ok) {
-          $("confirmBtn").disabled = false;
-          $("confirmBtn").textContent = "Submit";
+          btn.disabled = false;
+          btn.textContent = "Submit";
           App.showMessage(r.error, true);
           window.scrollTo(0, 0);
           return;
         }
+        submitted = true;
         showResult(r);
       });
 
@@ -137,28 +207,32 @@
         if (!r.passed) App.resetReadState(moduleId);
 
         $("testView").classList.add("hidden");
-        $("answeredCount").textContent = "";
-        $("resultTitle").textContent = modTitle + ", attempt " + r.attemptNumber;
-        $("score").textContent = r.scorePct + "%";
+        $("message").classList.add("hidden");
+        $("resultPill").textContent = r.passed ? "Passed" : "Not passed";
+        $("attemptPill").textContent = "Module " + pad(moduleId) + " / Attempt " + r.attemptNumber;
+        $("scoreText").textContent = "Score " + r.scorePct + "%";
         $("scoreDetail").textContent = r.correct + " of " + r.total + " correct";
-        $("resultLine").textContent = r.passed ? "Passed" : "Not passed. Read the module again and retake the test.";
+        $("resultLine").innerHTML = r.passed
+          ? "Passed. <span class='tone'>The next module is now open.</span>"
+          : "Not passed. <span class='tone'>Read the module again and retake the test.</span>";
 
-        var buttons = "<a class='btn' href='index.html'>Back to dashboard</a>";
-        if (!r.passed) buttons += "<a class='btn secondary' href='module.html?id=" + moduleId + "'>Read module again</a>";
+        var buttons = "<a class='btn has-ico' href='index.html'><span class='ico' aria-hidden='true'></span><span>Back to dashboard</span></a>";
+        if (!r.passed) buttons += "<a class='btn light' href='module.html?id=" + moduleId + "'>Read module again</a>";
         $("resultActions").innerHTML = buttons;
         $("resultActionsBottom").innerHTML = buttons;
 
         $("review").innerHTML = r.review.map(function (q, i) {
-          return "<div class='review-item'>" +
-            "<p><span class='mark'>" + (q.isCorrect ? "&#10003; Correct" : "&#10007; Wrong") + "</span></p>" +
-            "<p><strong>" + (i + 1) + ". " + App.escapeHtml(q.question) + "</strong></p>" +
-            "<p class='line'>Your answer: " + App.escapeHtml(q.yourAnswer) + "</p>" +
-            "<p class='line'>Correct answer: " + App.escapeHtml(q.correctAnswer) + "</p>" +
-            (q.explanation ? "<p class='line muted'>" + App.escapeHtml(q.explanation) + "</p>" : "") +
+          return "<div class='panel review-item'>" +
+            "<div class='top'><span class='pill'>Q" + pad(i + 1) + "</span><span class='pill" + (q.isCorrect ? " dark'>&#10003; Correct" : "'>&#10007; Wrong") + "</span></div>" +
+            "<p class='q'>" + App.escapeHtml(q.question) + "</p>" +
+            "<dl><dt>Your answer</dt><dd>" + App.escapeHtml(q.yourAnswer) + "</dd>" +
+            "<dt>Correct</dt><dd>" + App.escapeHtml(q.correctAnswer) + "</dd></dl>" +
+            (q.explanation ? "<p class='why'>" + App.escapeHtml(q.explanation) + "</p>" : "") +
             "</div>";
         }).join("");
 
         $("resultView").classList.remove("hidden");
+        DotText.render($("score"), r.scorePct + "%");
         window.scrollTo(0, 0);
       }
     })();

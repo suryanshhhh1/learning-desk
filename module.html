@@ -8,67 +8,88 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <a href="index.html">&larr; Dashboard</a>
-      <span class="muted" id="counterTop"></span>
-    </div>
-
-    <div id="message" class="message hidden"></div>
-    <p id="loading" class="muted">Loading...</p>
-
-    <article id="reader" class="reader hidden">
-      <div class="counter" id="counter"></div>
-      <div class="module-title" id="moduleTitle"></div>
-      <h2 id="sectionHeading"></h2>
-      <div id="sectionBody"></div>
-
-      <div class="nav">
-        <button type="button" class="btn secondary" id="backBtn">Back</button>
-        <button type="button" class="btn" id="nextBtn">Next</button>
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span><span class="mono">NABH Onboarding</span></a>
+      <div class="topbar-right">
+        <a class="btn small light" href="index.html">Dashboard</a>
       </div>
-    </article>
+    </header>
+
+    <div class="reading">
+      <div id="message" class="message hidden" role="alert" aria-live="assertive"></div>
+      <p id="loading" class="loading">Loading</p>
+
+      <div id="readerView" class="hidden">
+        <header class="read-head">
+          <div class="row">
+            <span class="pill dark" id="modPill">Module</span>
+            <span class="mono muted" id="counter" aria-live="polite"></span>
+          </div>
+          <div class="dots dot-lg" id="counterDots" aria-hidden="true"></div>
+          <div class="segments" id="segments" aria-hidden="true"></div>
+          <p class="module-title" id="moduleTitle"></p>
+        </header>
+
+        <article class="panel reader">
+          <h2 id="sectionHeading" tabindex="-1"></h2>
+          <div id="sectionBody"></div>
+        </article>
+
+        <nav class="nav" aria-label="Sections">
+          <button type="button" class="btn light" id="backBtn">Back</button>
+          <button type="button" class="btn has-ico" id="nextBtn"><span class="ico" aria-hidden="true"></span><span id="nextLabel">Next</span></button>
+        </nav>
+      </div>
+    </div>
   </div>
 
   <script src="js/config.js"></script>
   <script src="js/mock.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/dots.js"></script>
   <script src="lib/marked.min.js"></script>
   <script>
     (async function () {
       if (!App.requireLogin()) return;
       var $ = function (id) { return document.getElementById(id); };
+      var pad = function (n) { return (n < 10 ? "0" : "") + n; };
       var moduleId = Number(App.param("id"));
+
+      function fail(text) {
+        $("loading").classList.add("hidden");
+        App.showMessage(text, true);
+      }
 
       // Load the module list and the user's progress together.
       var results = await Promise.all([App.loadManifest(), Api.call("getProgress")]);
       var manifest = results[0];
       var res = results[1];
-      if (!res.ok) { App.showMessage(res.error, true); $("loading").classList.add("hidden"); return; }
+      if (!res.ok) return fail(res.error);
 
       var item = App.moduleStatuses(manifest.modules, res.progress).find(function (i) { return i.module.id === moduleId; });
-      if (!item || item.status === "locked" || item.status === "comingSoon") {
-        $("loading").classList.add("hidden");
-        App.showMessage(item && item.status === "comingSoon" ? "This module has not been published yet." : "This module is locked. Pass the previous module first.", true);
-        return;
-      }
+      if (!item) return fail("This module does not exist.");
+      if (item.status === "comingSoon") return fail("This module has not been published yet.");
+      if (item.status === "locked") return fail("This module is locked. Pass the previous module first.");
 
       // Load and split the markdown file.
       var mdRes = await fetch("content/" + item.module.file, { cache: "no-cache" });
-      if (!mdRes.ok) { $("loading").classList.add("hidden"); App.showMessage("Could not load the module text.", true); return; }
+      if (!mdRes.ok) return fail("Could not load the module text.");
       var doc = App.splitSections(await mdRes.text());
       var sections = doc.sections;
       document.title = doc.title || item.module.title;
-      $("moduleTitle").textContent = doc.title || ("Module " + moduleId + ": " + item.module.title);
+      $("modPill").textContent = "Module " + pad(moduleId);
+      $("moduleTitle").textContent = item.module.title;
 
-      // The wait applies only while the module is still being read for the first time
-      // (status "open"), and only on sections not yet seen.
+      // The wait applies only while the module is being read for the first
+      // time (status "open"), and only on sections not yet seen.
       var minSeconds = Number(res.settings && res.settings.minSecondsPerSection) || 0;
       var useTimer = item.status === "open";
       var state = App.getReadState(moduleId);
       if (state.current >= sections.length) state.current = 0;
 
       var timer = null;
+      var hasRendered = false;
 
       function lastLabel() {
         return item.status === "completed" ? "Back to dashboard" : "Take the test";
@@ -77,10 +98,15 @@
       function render() {
         clearInterval(timer);
         var s = sections[state.current];
-        var counterText = "Section " + (state.current + 1) + " of " + sections.length;
-        $("counter").textContent = counterText;
-        $("counterTop").textContent = counterText;
-        $("sectionHeading").textContent = state.current === 0 && s.heading === "Introduction" ? "Introduction" : s.heading;
+        var n = state.current + 1;
+
+        $("counter").textContent = "Section " + n + " of " + sections.length;
+        DotText.render($("counterDots"), pad(n) + "/" + pad(sections.length));
+        $("segments").innerHTML = sections.map(function (_, i) {
+          return "<span class='seg" + (i < state.current ? " on" : i === state.current ? " current" : "") + "'></span>";
+        }).join("");
+
+        $("sectionHeading").textContent = s.heading;
         $("sectionBody").innerHTML = marked.parse(s.body);
 
         // Wrap every table so it can scroll sideways on a phone.
@@ -95,12 +121,12 @@
         var isLast = state.current === sections.length - 1;
         var label = isLast ? lastLabel() : "Next";
         var next = $("nextBtn");
+        var nextLabel = $("nextLabel");
 
-        var needsWait = useTimer && state.current > state.maxSeen && minSeconds > 0;
-        if (needsWait) {
+        if (useTimer && state.current > state.maxSeen && minSeconds > 0) {
           var left = minSeconds;
           next.disabled = true;
-          next.textContent = label + " (" + left + ")";
+          nextLabel.textContent = label + " (" + left + ")";
           timer = setInterval(function () {
             left--;
             if (left <= 0) {
@@ -108,18 +134,21 @@
               state.maxSeen = Math.max(state.maxSeen, state.current);
               App.setReadState(moduleId, state);
               next.disabled = false;
-              next.textContent = label;
+              nextLabel.textContent = label;
             } else {
-              next.textContent = label + " (" + left + ")";
+              nextLabel.textContent = label + " (" + left + ")";
             }
           }, 1000);
         } else {
           next.disabled = false;
-          next.textContent = label;
+          nextLabel.textContent = label;
         }
 
         App.setReadState(moduleId, state);
         window.scrollTo(0, 0);
+        // Move focus to the new heading so screen readers start the new section.
+        if (hasRendered) $("sectionHeading").focus({ preventScroll: true });
+        hasRendered = true;
       }
 
       $("backBtn").addEventListener("click", function () {
@@ -136,14 +165,14 @@
         if (item.status === "completed") { window.location.href = "index.html"; return; }
         var btn = $("nextBtn");
         btn.disabled = true;
-        btn.textContent = "Please wait...";
+        $("nextLabel").textContent = "Please wait";
         var r = await Api.call("markReadComplete", { moduleId: moduleId });
-        if (!r.ok) { App.showMessage(r.error, true); btn.disabled = false; btn.textContent = lastLabel(); return; }
+        if (!r.ok) { App.showMessage(r.error, true); btn.disabled = false; $("nextLabel").textContent = lastLabel(); return; }
         window.location.href = "test.html?id=" + moduleId;
       });
 
       $("loading").classList.add("hidden");
-      $("reader").classList.remove("hidden");
+      $("readerView").classList.remove("hidden");
       render();
     })();
   </script>
