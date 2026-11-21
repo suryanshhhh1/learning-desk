@@ -7,54 +7,53 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="wrap">
-    <header class="topbar">
-      <a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span><span class="mono">NABH Onboarding</span></a>
-      <div class="topbar-right">
-        <a class="btn small light" href="index.html">Dashboard</a>
-      </div>
-    </header>
+  <header class="masthead">
+    <a class="title" href="index.html">NABH Onboarding</a>
+    <div class="cells">
+      <span class="cell"><span class="crumbs"><a href="index.html">Dashboard</a><span class="sep">&rsaquo;</span><span id="crumbModule">Module</span><span class="sep">&rsaquo;</span>Test</span></span>
+      <span class="cell" id="answeredCell" aria-hidden="true"></span>
+    </div>
+  </header>
 
-    <div class="reading">
-      <div id="message" class="message hidden" role="alert" aria-live="assertive"></div>
-      <p id="loading" class="loading">Preparing your test</p>
+  <div class="page">
+    <div class="narrow">
+      <div id="message" class="message hidden" role="alert" aria-live="assertive" style="margin-top:18px"></div>
+      <p id="loading" class="loading">Preparing your test...</p>
 
       <!-- ===================== Questions ===================== -->
       <section id="testView" class="hidden">
         <header class="test-head">
-          <div class="row"><span class="pill dark" id="modPill">Module</span><span class="pill" id="countPill"></span></div>
-          <div class="dots dot-xl" data-dots="TEST." aria-hidden="true"></div>
-          <h1 class="lede"><span id="testTitle"></span> <span class="tone">Choose one answer for each question.</span></h1>
+          <div class="row label"><span id="modLabel">Module</span><span id="countLabel"></span></div>
+          <h1 id="testTitle"></h1>
+          <p>Choose one answer for each question, then submit.</p>
         </header>
 
-        <form id="testForm"></form>
+        <form id="testForm" class="questions"></form>
 
-        <div class="panel submit-bar">
+        <div class="submit-bar">
           <div class="row">
-            <span class="mono" id="answeredCount" aria-live="polite"></span>
-            <span class="mono muted" id="passNote"></span>
+            <span class="label" id="answeredCount" aria-live="polite"></span>
           </div>
           <div class="segments" id="segments" aria-hidden="true"></div>
           <p class="hint" id="submitHint"></p>
-          <button type="button" class="btn full has-ico" id="submitBtn" disabled><span class="ico" aria-hidden="true"></span><span>Submit</span></button>
+          <button type="button" class="btn full" id="submitBtn" disabled>Submit</button>
         </div>
       </section>
 
       <!-- ===================== Result ===================== -->
-      <section id="resultView" class="hidden">
-        <div class="panel result-head">
-          <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
-            <span class="pill dark" id="resultPill"></span><span class="pill" id="attemptPill"></span>
-          </div>
-          <h1 class="visually-hidden" id="scoreText"></h1>
-          <div class="dots dot-xl" id="score" aria-hidden="true"></div>
-          <p class="mono muted" id="scoreDetail"></p>
-          <p class="result-line" id="resultLine"></p>
+      <section id="resultView" class="result hidden">
+        <div class="card" id="resultCard">
+          <div class="card-top label"><span id="resultTag"></span><span id="attemptTag"></span></div>
+          <h1 class="big-num" id="score"></h1>
+          <p class="label" id="scoreDetail"></p>
+          <p class="verdict" id="verdict"></p>
           <div class="actions" id="resultActions"></div>
         </div>
 
-        <h2 class="pill review-head">Review</h2>
-        <div id="review"></div>
+        <div class="review">
+          <div class="group-head" style="margin:20px 0 4px"><h2>Review</h2><span class="label muted" id="reviewCount"></span></div>
+          <div id="review"></div>
+        </div>
         <div class="actions" id="resultActionsBottom"></div>
       </section>
     </div>
@@ -62,11 +61,11 @@
 
   <!-- Confirmation dialog -->
   <div class="overlay hidden" id="confirmBox" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
-    <div class="panel dialog">
-      <p id="confirmTitle"><strong>Submit your answers?</strong></p>
+    <div class="dialog">
+      <h2 id="confirmTitle">Submit your answers?</h2>
       <p class="muted small" id="confirmText">You cannot change them after submitting.</p>
       <div class="actions">
-        <button type="button" class="btn light" id="cancelBtn">Cancel</button>
+        <button type="button" class="btn outline" id="cancelBtn">Cancel</button>
         <button type="button" class="btn" id="confirmBtn">Submit</button>
       </div>
     </div>
@@ -76,7 +75,6 @@
   <script src="js/mock.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
-  <script src="js/dots.js"></script>
   <script>
     (async function () {
       if (!App.requireLogin()) return;
@@ -89,7 +87,8 @@
       var mod = manifest.modules.find(function (m) { return m.id === moduleId; });
       var modTitle = mod ? mod.title : "Module " + moduleId;
       document.title = "Test: Module " + moduleId;
-      $("modPill").textContent = "Module " + pad(moduleId);
+      $("crumbModule").textContent = "Module " + pad(moduleId);
+      $("modLabel").textContent = "Module " + pad(moduleId) + " test";
 
       // Ask the server for a new set of questions. It checks the module is
       // unlocked and has been read. No answers are sent to the browser here.
@@ -105,14 +104,14 @@
 
       // ---------- Show the questions ----------
       var total = test.questions.length;
-      $("testTitle").textContent = modTitle + ".";
-      $("countPill").textContent = total + " questions";
+      $("testTitle").textContent = modTitle;
+      $("countLabel").textContent = total + " questions";
       var form = $("testForm");
       test.questions.forEach(function (q, i) {
         var fs = document.createElement("fieldset");
-        fs.className = "panel question";
+        fs.className = "question";
         fs.id = "q-" + i;
-        var html = "<legend><span class='pill'>Q" + pad(i + 1) + "</span>" + App.escapeHtml(q.question) + "</legend>";
+        var html = "<legend><span class='label'>Question " + pad(i + 1) + "</span>" + App.escapeHtml(q.question) + "</legend>";
         q.options.forEach(function (o) {
           html += "<label class='option'><input type='radio' name='" + App.escapeHtml(q.questionId) + "' value='" + o.key + "'><span>" + App.escapeHtml(o.text) + "</span></label>";
         });
@@ -120,7 +119,6 @@
         form.appendChild(fs);
       });
       $("testView").classList.remove("hidden");
-      DotText.renderAll();
 
       function collectAnswers() {
         var answers = {};
@@ -139,12 +137,12 @@
           $("q-" + i).classList.toggle("answered", done);
           if (!done) missing.push(i + 1);
         });
-        // Mark the chosen option (works in browsers without :has()).
         form.querySelectorAll(".option").forEach(function (l) {
           l.classList.toggle("checked", l.querySelector("input").checked);
         });
         var n = total - missing.length;
         $("answeredCount").textContent = n + " of " + total + " answered";
+        $("answeredCell").textContent = pad(n) + " / " + pad(total);
         $("segments").innerHTML = test.questions.map(function (q) {
           return "<span class='seg" + (answers[q.questionId] ? " on" : "") + "'></span>";
         }).join("");
@@ -163,14 +161,8 @@
 
       // ---------- Confirmation dialog ----------
       var box = $("confirmBox");
-      function openDialog() {
-        box.classList.remove("hidden");
-        $("cancelBtn").focus();
-      }
-      function closeDialog() {
-        box.classList.add("hidden");
-        $("submitBtn").focus();
-      }
+      function openDialog() { box.classList.remove("hidden"); $("cancelBtn").focus(); }
+      function closeDialog() { box.classList.add("hidden"); $("submitBtn").focus(); }
       $("submitBtn").addEventListener("click", openDialog);
       $("cancelBtn").addEventListener("click", closeDialog);
       box.addEventListener("click", function (e) { if (e.target === box) closeDialog(); });
@@ -187,7 +179,7 @@
       $("confirmBtn").addEventListener("click", async function () {
         var btn = $("confirmBtn");
         btn.disabled = true;
-        btn.textContent = "Submitting";
+        btn.textContent = "Submitting...";
         var r = await Api.call("submitTest", { attemptId: test.attemptId, answers: collectAnswers() });
         box.classList.add("hidden");
         if (!r.ok) {
@@ -208,31 +200,35 @@
 
         $("testView").classList.add("hidden");
         $("message").classList.add("hidden");
-        $("resultPill").textContent = r.passed ? "Passed" : "Not passed";
-        $("attemptPill").textContent = "Module " + pad(moduleId) + " / Attempt " + r.attemptNumber;
-        $("scoreText").textContent = "Score " + r.scorePct + "%";
+        $("answeredCell").textContent = r.passed ? "Passed" : "Not passed";
+        $("resultCard").className = "card " + (r.passed ? "green" : "blue-200");
+        $("resultTag").textContent = r.passed ? "Passed" : "Not passed";
+        $("attemptTag").textContent = "Attempt " + r.attemptNumber;
+        $("score").textContent = r.scorePct + "%";
         $("scoreDetail").textContent = r.correct + " of " + r.total + " correct";
-        $("resultLine").innerHTML = r.passed
-          ? "Passed. <span class='tone'>The next module is now open.</span>"
-          : "Not passed. <span class='tone'>Read the module again and retake the test.</span>";
+        $("verdict").innerHTML = r.passed
+          ? "Passed. <em>The next module is now open.</em>"
+          : "Not passed. <em>Read the module again and retake the test.</em>";
 
-        var buttons = "<a class='btn has-ico' href='index.html'><span class='ico' aria-hidden='true'></span><span>Back to dashboard</span></a>";
-        if (!r.passed) buttons += "<a class='btn light' href='module.html?id=" + moduleId + "'>Read module again</a>";
+        var buttons = "<a class='btn' href='index.html'>Back to dashboard</a>";
+        if (!r.passed) buttons += "<a class='btn outline' href='module.html?id=" + moduleId + "'>Read module again</a>";
         $("resultActions").innerHTML = buttons;
         $("resultActionsBottom").innerHTML = buttons;
 
+        var wrong = r.review.filter(function (q) { return !q.isCorrect; }).length;
+        $("reviewCount").textContent = wrong ? wrong + " wrong" : "All correct";
         $("review").innerHTML = r.review.map(function (q, i) {
-          return "<div class='panel review-item'>" +
-            "<div class='top'><span class='pill'>Q" + pad(i + 1) + "</span><span class='pill" + (q.isCorrect ? " dark'>&#10003; Correct" : "'>&#10007; Wrong") + "</span></div>" +
+          return "<div class='review-item'>" +
+            "<div class='top label'><span>Question " + pad(i + 1) + "</span>" +
+            (q.isCorrect ? "<span class='mark-ok'>&#10003; Correct</span>" : "<span>&#10007; Wrong</span>") + "</div>" +
             "<p class='q'>" + App.escapeHtml(q.question) + "</p>" +
-            "<dl><dt>Your answer</dt><dd>" + App.escapeHtml(q.yourAnswer) + "</dd>" +
-            "<dt>Correct</dt><dd>" + App.escapeHtml(q.correctAnswer) + "</dd></dl>" +
+            "<dl><dt class='label'>Your answer</dt><dd>" + App.escapeHtml(q.yourAnswer) + "</dd>" +
+            "<dt class='label'>Correct</dt><dd>" + App.escapeHtml(q.correctAnswer) + "</dd></dl>" +
             (q.explanation ? "<p class='why'>" + App.escapeHtml(q.explanation) + "</p>" : "") +
             "</div>";
         }).join("");
 
         $("resultView").classList.remove("hidden");
-        DotText.render($("score"), r.scorePct + "%");
         window.scrollTo(0, 0);
       }
     })();

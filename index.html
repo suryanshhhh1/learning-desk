@@ -7,102 +7,86 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="wrap">
+  <header class="masthead">
+    <a class="title" href="index.html" id="brandTitle">NABH Onboarding</a>
+    <div class="cells">
+      <span class="cell"><span class="crumbs" id="crumb">Welcome</span></span>
+      <span class="cell hidden" id="progressCell"></span>
+      <button type="button" class="cell hidden" id="logoutBtn">Log out</button>
+    </div>
+  </header>
 
-    <header class="topbar">
-      <a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span><span class="mono" id="brandTitle">NABH Onboarding</span></a>
-      <div class="topbar-right">
-        <button type="button" class="btn small hidden" id="logoutBtn">Log out</button>
-      </div>
-    </header>
+  <div class="page">
 
     <!-- ===================== Login ===================== -->
-    <main id="login" class="hidden">
-      <section class="login-hero">
-        <div class="dots dot-xl" data-align="center" data-dots="READ. TEST." data-label="Read. Test. Unlock."></div>
-        <div class="flow" aria-hidden="true">
-          <span class="pill">Read</span><i></i><span class="pill">Test</span><i></i><span class="pill">Pass</span><i></i><span class="pill dark">Next</span>
-        </div>
-        <div class="dots dot-xl" data-align="center" data-dots="UNLOCK." aria-hidden="true"></div>
-      </section>
+    <main id="login" class="login hidden">
+      <h1>Read, test, <em>unlock.</em></h1>
+      <p class="intro">Log in with your username and PIN. Each module opens after you pass the test for the one before it.</p>
 
-      <section class="panel login-box">
-        <p class="lede">Log in. <span class="tone">Use your name and PIN.</span></p>
+      <section class="card blue-200">
+        <div class="card-top label"><span>Log in</span><span>Staff</span></div>
         <div id="message" class="message hidden" role="alert" aria-live="assertive"></div>
         <form id="loginForm" autocomplete="on">
-          <label class="field" for="name">Name</label>
+          <label class="field label" for="name">Username</label>
           <input type="text" id="name" name="name" autocomplete="username" required>
-          <label class="field" for="pin">PIN</label>
+          <label class="field label" for="pin">PIN</label>
           <input type="password" id="pin" name="pin" inputmode="numeric" autocomplete="current-password" required>
-          <button type="submit" class="btn full has-ico" id="loginBtn"><span class="ico" aria-hidden="true"></span><span>Log in</span></button>
+          <button type="submit" class="btn full" id="loginBtn">Log in</button>
         </form>
       </section>
     </main>
 
     <!-- ===================== Dashboard ===================== -->
     <main id="dashboard" class="hidden">
-      <section class="hero">
-        <h1 class="visually-hidden" id="greetingText">Hi</h1>
-        <div class="dots dot-xl" id="greeting" aria-hidden="true"></div>
-        <p class="lede"><span id="subheading">NABH Onboarding.</span> <span class="tone">Read each module, pass its test, and the next one opens.</span></p>
+      <section class="welcome">
+        <h1>Hi <em id="greetName">there.</em></h1>
+        <p id="subheading">NABH Onboarding</p>
       </section>
 
-      <section class="panel stats" aria-label="Progress">
-        <div class="stat">
-          <div class="dots dot-lg" id="statDone" aria-hidden="true"></div>
+      <section class="bento" aria-label="Your progress">
+        <div class="card blue-200">
+          <div class="card-top label"><span>Progress</span><span id="progressPct"></span></div>
           <div>
-            <p class="label" id="summary"></p>
-            <div class="segments" id="segments" role="progressbar" aria-valuemin="0" style="margin-top:10px"></div>
+            <p class="big-num"><span id="doneNum">0</span> <small>of <span id="totalNum">14</span></small></p>
+            <p class="small" id="summary" style="margin:6px 0 12px"></p>
+            <div class="segments" id="segments" role="progressbar" aria-valuemin="0"></div>
           </div>
         </div>
-        <div class="stat">
-          <div class="dots dot-lg" id="statPass" aria-hidden="true"></div>
-          <p class="label" id="passLabel">Pass mark for every test</p>
+        <div class="card blue-50">
+          <div class="card-top label"><span>Pass mark</span><span>Every test</span></div>
+          <p class="big-num" id="passNum">85%</p>
         </div>
-        <div class="stat next">
-          <p id="nextText"></p>
-          <a class="btn light has-ico hidden" id="nextBtn" href="#"><span class="ico" aria-hidden="true"></span><span id="nextBtnText">Continue</span></a>
+        <div class="card ink wide">
+          <div class="card-top label"><span>Next up</span><span id="nextMeta"></span></div>
+          <p class="next-text" id="nextText"></p>
+          <a class="btn on-blue hidden" id="nextBtn" href="#">Continue</a>
         </div>
       </section>
 
-      <section class="cabinet" aria-labelledby="modulesHeading">
-        <div class="section-head">
-          <h2 class="pill" id="modulesHeading" style="margin:0">Modules</h2>
-          <span class="pill" id="moduleRange">01 - 14</span>
-        </div>
-        <p class="note" id="drawerNote" role="status" aria-live="polite"></p>
-        <div class="drawer" id="drawer"></div>
-        <div class="drawer-front" aria-hidden="true">
-          <span class="handle"></span>
-          <span class="mono" id="drawerCount"></span>
-        </div>
-      </section>
+      <p class="visually-hidden" id="drawerNote" role="status" aria-live="polite"></p>
+      <div id="groups"></div>
     </main>
 
-    <p id="loading" class="loading">Loading</p>
+    <p id="loading" class="loading">Loading...</p>
   </div>
 
   <script src="js/config.js"></script>
   <script src="js/mock.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
-  <script src="js/dots.js"></script>
   <script>
     (function () {
       var $ = function (id) { return document.getElementById(id); };
       var pad = function (n) { return (n < 10 ? "0" : "") + n; };
-
-      // Horizontal position of each folder tab, so they stagger like files.
-      var OFFSETS_WIDE = [6, 40, 20, 48, 2, 30, 12, 44, 24, 0, 36, 16, 46, 8];
-      var OFFSETS_NARROW = [0, 14, 5, 12, 2, 10, 14, 3, 11, 6, 14, 1, 9, 13];
 
       // ---------- Login ----------
       function showLogin() {
         $("loading").classList.add("hidden");
         $("dashboard").classList.add("hidden");
         $("logoutBtn").classList.add("hidden");
+        $("progressCell").classList.add("hidden");
+        $("crumb").textContent = "Welcome";
         $("login").classList.remove("hidden");
-        DotText.renderAll();
         if (App.param("expired")) App.showMessage("Your session has ended. Please log in again.");
         $("name").focus();
       }
@@ -112,10 +96,10 @@
         App.showMessage("");
         var btn = $("loginBtn");
         btn.disabled = true;
-        btn.lastElementChild.textContent = "Logging in";
+        btn.textContent = "Logging in...";
         var res = await Api.call("login", { name: $("name").value.trim(), pin: $("pin").value.trim() });
         btn.disabled = false;
-        btn.lastElementChild.textContent = "Log in";
+        btn.textContent = "Log in";
         if (!res.ok) { App.showMessage(res.error, true); $("pin").select(); return; }
         Api.saveSession(res.token, res.name);
         $("pin").value = "";
@@ -146,42 +130,44 @@
 
         document.title = manifest.programTitle;
         $("brandTitle").textContent = manifest.programTitle;
-        $("subheading").textContent = manifest.programTitle + ".";
-        $("greetingText").textContent = "Hi " + name;
+        $("crumb").textContent = "Dashboard";
+        $("greetName").textContent = name + ".";
+        $("subheading").textContent = "Read each module, pass its test, and the next one opens.";
+        $("doneNum").textContent = done;
+        $("totalNum").textContent = total;
         $("summary").textContent = done + " of " + total + " modules completed";
-        $("moduleRange").textContent = "01 - " + pad(total);
-        $("drawerCount").textContent = pad(done) + " / " + pad(total) + " completed";
+        $("progressPct").textContent = Math.round((done / total) * 100) + "%";
+        $("passNum").textContent = passPct + "%";
+        $("progressCell").textContent = pad(done) + " / " + pad(total);
 
         // Segmented progress bar, one segment per module
         var seg = $("segments");
-        seg.innerHTML = items.map(function (i) { return "<span class='seg" + (i.status === "completed" ? " on" : "") + "'></span>"; }).join("");
+        seg.innerHTML = items.map(function (i) { return "<span class='seg" + (i.status === "completed" ? " done" : "") + "'></span>"; }).join("");
         seg.setAttribute("aria-valuemax", total);
         seg.setAttribute("aria-valuenow", done);
         seg.setAttribute("aria-label", done + " of " + total + " modules completed");
 
-        // "Next up" panel: the module she should work on now
+        // "Next up": the module she should work on now
         var next = items.find(function (i) { return i.status === "open" || i.status === "testReady"; });
         if (next) {
           var started = App.getReadState(next.module.id).maxSeen >= 0;
-          $("nextText").textContent = "Next up: Module " + next.module.id + ", " + next.module.title + ".";
-          $("nextBtnText").textContent = next.status === "testReady" ? "Take the test" : (started ? "Continue" : "Start");
+          $("nextMeta").textContent = "Module " + pad(next.module.id);
+          $("nextText").textContent = next.module.title;
+          $("nextBtn").textContent = next.status === "testReady" ? "Take the test" : (started ? "Continue reading" : "Start reading");
           $("nextBtn").href = linkFor(next);
           $("nextBtn").classList.remove("hidden");
         } else {
+          $("nextMeta").textContent = "";
           $("nextText").textContent = done === total ? "All modules completed." : "New modules are coming soon.";
           $("nextBtn").classList.add("hidden");
         }
 
-        renderDrawer(items);
+        renderGroups(items);
 
         $("loading").classList.add("hidden");
         $("dashboard").classList.remove("hidden");
         $("logoutBtn").classList.remove("hidden");
-
-        // Dot-matrix text needs the element to be visible to measure its width.
-        DotText.render($("greeting"), "Hi " + name + ".");
-        DotText.render($("statDone"), pad(done) + "/" + pad(total));
-        DotText.render($("statPass"), passPct + "%");
+        $("progressCell").classList.remove("hidden");
       }
 
       function linkFor(item) {
@@ -190,63 +176,63 @@
         return null;
       }
 
-      function renderDrawer(items) {
-        var drawer = $("drawer");
-        var wide = window.matchMedia("(min-width: 720px)").matches;
-        drawer.innerHTML = "";
-
-        items.forEach(function (item, i) {
-          var mod = item.module;
-          var meta, reason = "";
-          switch (item.status) {
-            case "completed": meta = "&#10003; " + App.escapeHtml(item.progress.bestScorePct) + "%"; break;
-            case "testReady": meta = "Test ready"; break;
-            case "open": meta = App.getReadState(mod.id).maxSeen >= 0 ? "Continue" : "Start"; break;
-            case "locked":
-              meta = "<span class='lock' aria-hidden='true'></span>Locked";
-              reason = "Module " + mod.id + " is locked. Pass Module " + (mod.id - 1) + " to unlock it.";
-              break;
-            default:
-              meta = "Soon";
-              reason = "Module " + mod.id + " has not been published yet.";
-          }
-
-          var statusWords = { completed: "completed, best score " + item.progress.bestScorePct + "%", testReady: "test ready", open: "open", locked: "locked", comingSoon: "coming soon" }[item.status];
-          var folder = document.createElement("button");
-          folder.type = "button";
-          folder.className = "folder s-" + item.status;
-          folder.style.zIndex = i + 1;
-          folder.style.setProperty("--x", (wide ? OFFSETS_WIDE : OFFSETS_NARROW)[i % 14] + "%");
-          folder.setAttribute("aria-label", "Module " + mod.id + ": " + mod.title + ", " + statusWords);
-          folder.innerHTML =
-            "<span class='tab'>" +
-              "<span class='t-num'>" + pad(mod.id) + "</span>" +
-              "<span class='t-title'>" + App.escapeHtml(mod.title) + "</span>" +
-              "<span class='t-meta'>" + meta + "</span>" +
-            "</span><span class='sheet'></span>";
-
-          folder.addEventListener("click", function () {
-            var href = linkFor(item);
-            if (href) { window.location.href = href; return; }
-            // Locked or coming soon: nothing opens, just say why.
-            $("drawerNote").textContent = reason;
-          });
-          drawer.appendChild(folder);
+      // Module cards, grouped by "part" from modules.json.
+      function renderGroups(items) {
+        var wrap = $("groups");
+        wrap.innerHTML = "";
+        var parts = [];
+        items.forEach(function (i) {
+          var p = i.module.part || "Modules";
+          if (parts.indexOf(p) === -1) parts.push(p);
         });
-        drawer.dataset.wide = wide;
+
+        parts.forEach(function (part, pi) {
+          var inPart = items.filter(function (i) { return (i.module.part || "Modules") === part; });
+          var head = document.createElement("div");
+          head.className = "group-head";
+          head.innerHTML = "<h2>" + App.escapeHtml(part) + "</h2><span class='label muted'>Part " + (pi + 1) + " / " +
+            pad(inPart[0].module.id) + "-" + pad(inPart[inPart.length - 1].module.id) + "</span>";
+          var grid = document.createElement("div");
+          grid.className = "grid";
+          inPart.forEach(function (item) { grid.appendChild(card(item)); });
+          wrap.appendChild(head);
+          wrap.appendChild(grid);
+        });
       }
 
-      // Re-stagger the tabs if the screen crosses the phone/desktop width.
-      window.addEventListener("resize", function () {
-        var wide = window.matchMedia("(min-width: 720px)").matches;
-        var drawer = $("drawer");
-        if (drawer.dataset.wide !== String(wide)) {
-          drawer.querySelectorAll(".folder").forEach(function (f, i) {
-            f.style.setProperty("--x", (wide ? OFFSETS_WIDE : OFFSETS_NARROW)[i % 14] + "%");
-          });
-          drawer.dataset.wide = wide;
+      function card(item) {
+        var mod = item.module;
+        var badge, meta, reason = "";
+        switch (item.status) {
+          case "completed": badge = "Completed"; meta = "Best score " + App.escapeHtml(item.progress.bestScorePct) + "%"; break;
+          case "testReady": badge = "Test ready"; meta = "Reading done"; break;
+          case "open":
+            var started = App.getReadState(mod.id).maxSeen >= 0;
+            badge = started ? "Continue" : "Start"; meta = "Open now"; break;
+          case "locked":
+            badge = "<span class='lock' aria-hidden='true'></span>Locked"; meta = "Pass Module " + (mod.id - 1) + " first";
+            reason = "Module " + mod.id + " is locked. Pass Module " + (mod.id - 1) + " to unlock it.";
+            break;
+          default:
+            badge = "Soon"; meta = "Coming soon";
+            reason = "Module " + mod.id + " has not been published yet.";
         }
-      });
+        var el = document.createElement("button");
+        el.type = "button";
+        el.className = "mod s-" + item.status;
+        el.innerHTML =
+          "<span class='art' aria-hidden='true'><span class='num'>" + pad(mod.id) + "</span><span class='badge'>" + badge + "</span></span>" +
+          "<span class='caption'><span class='name'>" + App.escapeHtml(mod.title) + "</span><span class='meta label'>" + meta + "</span></span>";
+        el.setAttribute("aria-label", "Module " + mod.id + ": " + mod.title + ". " + el.querySelector(".badge").textContent + ". " + meta + ".");
+        el.addEventListener("click", function () {
+          var href = linkFor(item);
+          if (href) { window.location.href = href; return; }
+          // Locked or coming soon: nothing opens, just say why on the card.
+          el.querySelector(".meta").textContent = reason;
+          $("drawerNote").textContent = reason;
+        });
+        return el;
+      }
 
       // ---------- Start ----------
       if (Api.getToken()) showDashboard(); else showLogin();

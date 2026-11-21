@@ -83,7 +83,7 @@ function login(req) {
       String(u.pin).trim() === pin &&
       isTrue(u.active);
   })[0];
-  if (!user) return { ok: false, error: 'Name or PIN is not correct.' };
+  if (!user) return { ok: false, error: 'Username or PIN is not correct.' };
 
   // Sessions are kept in Script Properties because CacheService
   // cannot hold items for longer than 6 hours.

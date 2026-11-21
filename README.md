@@ -83,7 +83,7 @@ Later modules unlock based on `passed` of the module before them, so if you rese
 
 ## Testing without Google (mock mode)
 
-With `MOCK: true` in `js/config.js`, or whenever the site is opened from `localhost`, it uses a fake backend in the browser (`js/mock.js`) with sample questions. Log in as `Anushka` / `0000`. Result emails are printed to the browser console instead of being sent.
+With `MOCK: true` in `js/config.js`, or whenever the site is opened from `localhost`, it uses a fake backend in the browser (`js/mock.js`) with sample questions. Log in as `Anushka` or `Tester` with PIN `0000` (test data only; real PINs live only in the Sheet). Result emails are printed to the browser console instead of being sent.
 
 To try it on your own computer, run this in the repository folder and open http://localhost:8000:
 

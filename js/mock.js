@@ -2,7 +2,7 @@
 // Mock backend, used only when APP_CONFIG.MOCK is true.
 // It copies the rules of apps-script/Code.gs but keeps all data in
 // this browser's localStorage, so the full flow can be tested
-// without Google. Login: name "Anushka", PIN "0000".
+// without Google. Logins (test data only, not the real PINs): "Anushka" or "Tester", PIN "0000".
 //
 // To wipe all mock data, run in the browser console:
 //   localStorage.removeItem("nabh.mock.db")
@@ -38,7 +38,7 @@ window.MockBackend = (function () {
   function load() {
     var db = JSON.parse(localStorage.getItem(DB_KEY) || "null");
     if (!db) {
-      db = { users: [{ name: "Anushka", pin: "0000", active: true }], tokens: {}, progress: [], attempts: [] };
+      db = { users: [{ name: "Anushka", pin: "0000", active: true }, { name: "Tester", pin: "0000", active: true }], tokens: {}, progress: [], attempts: [] };
     }
     return db;
   }
@@ -94,7 +94,7 @@ window.MockBackend = (function () {
       var user = db.users.find(function (u) {
         return u.active && u.name.toLowerCase() === String(req.name || "").trim().toLowerCase() && u.pin === String(req.pin || "").trim();
       });
-      if (!user) return { ok: false, error: "Name or PIN is not correct." };
+      if (!user) return { ok: false, error: "Username or PIN is not correct." };
       var token = "mock-" + Math.random().toString(36).slice(2);
       db.tokens[token] = { name: user.name, expires: Date.now() + 12 * 3600 * 1000 };
       save(db);
