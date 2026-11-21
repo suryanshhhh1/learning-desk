@@ -29,7 +29,7 @@ var DEFAULT_SETTINGS = [
   // The GitHub Pages address of the site. The backend reads
   // content/modules.json from here to know titles, which modules are
   // published and how many questions each test has.
-  ['siteUrl', 'https://suryanshhhh1.github.io/nabh-onboarding/']
+  ['siteUrl', 'https://suryanshhhh1.github.io/learning-desk/']
 ];
 
 var SESSION_HOURS = 12;

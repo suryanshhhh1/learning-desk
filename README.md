@@ -10,12 +10,12 @@ A small training site. The first program is **NABH Onboarding**. The site name a
 
 ## 1. Switch on GitHub Pages
 
-1. Open the repository on GitHub: https://github.com/suryanshhhh1/nabh-onboarding
+1. Open the repository on GitHub: https://github.com/suryanshhhh1/learning-desk
 2. Click **Settings**, then **Pages** in the left menu.
 3. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
 4. Set **Branch** to **main** and the folder to **/ (root)**. Click **Save**.
 5. Wait one or two minutes and refresh. The site link appears at the top of the page:
-   **https://suryanshhhh1.github.io/nabh-onboarding/**
+   **https://suryanshhhh1.github.io/learning-desk/**
 
 Until step 3 below is done the site runs in test mode (`MOCK = true`), where everything is stored only in your browser.
 
