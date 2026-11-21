@@ -100,6 +100,7 @@ To clear the mock data, run `localStorage.clear()` in the browser console.
 | `index.html` | Login and dashboard |
 | `module.html` | Reading view, one section per screen |
 | `test.html` | Test and result |
+| `review.html` | All test questions with answers, for a module already passed |
 | `css/style.css` | All styling |
 | `js/config.js` | API URL and mock switch |
 | `js/api.js` | All calls to the backend |

@@ -67,6 +67,7 @@ function route(req) {
     case 'markReadComplete': return withLock(function () { return markReadComplete(name, Number(req.moduleId)); });
     case 'startTest': return withLock(function () { return startTest(name, Number(req.moduleId)); });
     case 'submitTest': return withLock(function () { return submitTest(name, String(req.attemptId), req.answers || {}); });
+    case 'reviewQuestions': return reviewQuestions(name, Number(req.moduleId));
     default: return { ok: false, error: 'Unknown action: ' + req.action };
   }
 }
@@ -241,6 +242,31 @@ function submitTest(name, attemptId, answers) {
       };
     })
   };
+}
+
+// All questions of a module with their correct answers and explanations.
+// Only for a module this user has passed, so the answer key stays hidden
+// until then.
+function reviewQuestions(name, moduleId) {
+  var progress = findProgress(name, moduleId);
+  if (!progress || !isTrue(progress.passed)) {
+    return { ok: false, code: 'LOCKED', error: 'Pass this module\'s test to see its questions and answers.' };
+  }
+  var questions = readRows('Questions')
+    .filter(function (q) { return Number(q.moduleId) === moduleId && q.questionId; })
+    .map(function (q) {
+      var key = String(q.correct || '').trim().toUpperCase();
+      return {
+        questionId: String(q.questionId),
+        question: String(q.question),
+        options: ['A', 'B', 'C', 'D']
+          .filter(function (k) { return String(q['option' + k]).trim() !== ''; })
+          .map(function (k) { return { text: String(q['option' + k]), correct: k === key }; }),
+        explanation: String(q.explanation || '')
+      };
+    });
+  questions.sort(function (a, b) { return a.questionId.localeCompare(b.questionId, 'en', { numeric: true }); });
+  return { ok: true, moduleId: moduleId, questions: questions };
 }
 
 // =============================================================

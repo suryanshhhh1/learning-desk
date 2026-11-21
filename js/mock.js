@@ -151,6 +151,21 @@ window.MockBackend = (function () {
       };
     }
 
+    if (req.action === "reviewQuestions") {
+      var p = db.progress.find(function (x) { return x.name === name && x.moduleId === Number(req.moduleId); });
+      if (!p || !p.passed) return { ok: false, code: "LOCKED", error: "Pass this module's test to see its questions and answers." };
+      return {
+        ok: true,
+        moduleId: Number(req.moduleId),
+        questions: QUESTIONS.filter(function (q) { return q[0] === Number(req.moduleId); }).map(function (q) {
+          return {
+            questionId: q[1], question: q[2], explanation: q[8],
+            options: ["A", "B", "C", "D"].map(function (k, i) { return { text: q[3 + i], correct: k === q[7] }; })
+          };
+        })
+      };
+    }
+
     if (req.action === "submitTest") {
       var att = db.attempts.find(function (a) { return a.attemptId === req.attemptId && a.name === name; });
       if (!att) return { ok: false, error: "Test attempt not found." };

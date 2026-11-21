@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test questions</title>
+  <link rel="stylesheet" href="css/style.css?v=20261121d">
+</head>
+<body>
+  <header class="masthead">
+    <a class="title" href="index.html" id="brandTitle">Learning Desk</a>
+    <div class="cells">
+      <span class="cell"><span class="crumbs"><a href="index.html">Dashboard</a><span class="sep">&rsaquo;</span><span id="crumbModule">Module</span><span class="sep">&rsaquo;</span>Questions</span></span>
+      <a class="cell" id="readLink" href="#">Read module</a>
+    </div>
+  </header>
+
+  <div class="page">
+    <div class="narrow">
+      <div id="message" class="message hidden" role="alert" aria-live="assertive" style="margin-top:18px"></div>
+      <p id="loading" class="loading">Loading...</p>
+
+      <section id="reviewView" class="hidden">
+        <header class="test-head">
+          <div class="row label"><span id="modLabel">Module</span><span id="countLabel"></span></div>
+          <h1 id="title"></h1>
+          <p>Every question in this module's test, with the correct answer and why.</p>
+        </header>
+
+        <div class="review" id="list"></div>
+        <div class="actions">
+          <a class="btn" href="index.html">Back to dashboard</a>
+          <a class="btn outline" id="readBtn" href="#">Read module again</a>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="js/config.js?v=20261121d"></script>
+  <script src="js/mock.js?v=20261121d"></script>
+  <script src="js/api.js?v=20261121d"></script>
+  <script src="js/app.js?v=20261121d"></script>
+  <script>
+    (async function () {
+      if (!App.requireLogin()) return;
+      var $ = function (id) { return document.getElementById(id); };
+      var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+      var moduleId = Number(App.param("id"));
+
+      var manifest = await App.loadManifest();
+      $("brandTitle").textContent = manifest.siteTitle || "Learning Desk";
+      var mod = manifest.modules.find(function (m) { return m.id === moduleId; });
+      document.title = "Questions: Module " + moduleId;
+      $("crumbModule").textContent = "Module " + pad(moduleId);
+      $("readLink").href = $("readBtn").href = "module.html?id=" + moduleId;
+
+      // The server only answers for a module this user has passed.
+      var res = await Api.call("reviewQuestions", { moduleId: moduleId });
+      $("loading").classList.add("hidden");
+      if (!res.ok) { App.showMessage(res.error, true); return; }
+
+      $("modLabel").textContent = "Module " + pad(moduleId) + " test";
+      $("countLabel").textContent = res.questions.length + " questions";
+      $("title").textContent = mod ? mod.title : "Module " + moduleId;
+
+      $("list").innerHTML = res.questions.map(function (q, i) {
+        return "<div class='review-item'>" +
+          "<div class='top label'><span>Question " + pad(i + 1) + "</span></div>" +
+          "<p class='q'>" + App.escapeHtml(q.question) + "</p>" +
+          "<dl>" + q.options.map(function (o) {
+            return "<dt class='label'>" + (o.correct ? "<span class='mark-ok'>&#10003; Correct</span>" : "&nbsp;") + "</dt>" +
+              "<dd" + (o.correct ? " style='font-weight:600'" : " class='muted'") + ">" + App.escapeHtml(o.text) + "</dd>";
+          }).join("") + "</dl>" +
+          (q.explanation ? "<p class='why'>" + App.escapeHtml(q.explanation) + "</p>" : "") +
+          "</div>";
+      }).join("");
+      $("reviewView").classList.remove("hidden");
+    })();
+  </script>
+</body>
+</html>
