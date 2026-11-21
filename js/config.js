@@ -9,5 +9,10 @@ window.APP_CONFIG = {
 
   // true  = use a fake backend inside the browser (for testing, no Google needed).
   // false = use the real Google Sheet backend at API_URL.
-  MOCK: false
+  MOCK: false,
+
+  // Reading speed for the wait on the Next button: 1 second for every
+  // WORDS_PER_SECOND words on a screen. minSecondsPerSection in the
+  // Settings tab of the Sheet is the shortest wait for any screen.
+  WORDS_PER_SECOND: 4
 };

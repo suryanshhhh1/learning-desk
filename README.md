@@ -47,7 +47,7 @@ Everything is in the Google Sheet, so no code changes are needed.
 - **PIN:** in the **Users** tab, change the value in the `pin` column. Change `0000` before she starts.
 - **Pass mark:** in the **Settings** tab, change `passPercent` (default 85).
 - **Admin email:** in the **Settings** tab, change `adminEmail`.
-- **Wait time per section:** in the **Settings** tab, change `minSecondsPerSection` (default 20).
+- **Wait time per screen:** each screen waits 1 second for every 4 words on it. `minSecondsPerSection` in the **Settings** tab (default 20) is the shortest wait for any screen. The 4 words per second is `WORDS_PER_SECOND` in `js/config.js`.
 - **Turn off a user:** set `active` to `FALSE` in the **Users** tab.
 
 Leave `siteUrl` in Settings as it is. The backend uses it to read `content/modules.json`.

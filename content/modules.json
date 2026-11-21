@@ -7,14 +7,14 @@
     { "id": 3, "part": "Healthcare Basics", "title": "Medical Language", "file": "module-03.md", "published": true, "questionsPerTest": 10 },
     { "id": 4, "part": "Healthcare Basics", "title": "Medicines", "file": "module-04.md", "published": true, "questionsPerTest": 10 },
     { "id": 5, "part": "Healthcare Basics", "title": "Surgery, Anaesthesia and Critical Care", "file": "module-05.md", "published": true, "questionsPerTest": 10 },
-    { "id": 6, "part": "NABH", "title": "What NABH Is", "file": "", "published": false, "questionsPerTest": 10 },
-    { "id": 7, "part": "NABH", "title": "How the Standards Are Organised", "file": "", "published": false, "questionsPerTest": 10 },
-    { "id": 8, "part": "NABH", "title": "NABH Chapters in Plain Language, Part 1", "file": "", "published": false, "questionsPerTest": 10 },
-    { "id": 9, "part": "NABH", "title": "NABH Chapters in Plain Language, Part 2", "file": "", "published": false, "questionsPerTest": 10 },
-    { "id": 10, "part": "NABH", "title": "Quality and Safety Tools", "file": "", "published": false, "questionsPerTest": 10 },
-    { "id": 11, "part": "NABH", "title": "Infection Control, Biomedical Waste and Fire Safety", "file": "", "published": false, "questionsPerTest": 10 },
-    { "id": 12, "part": "NABH", "title": "Licences and Statutory Compliance", "file": "", "published": false, "questionsPerTest": 10 },
-    { "id": 13, "part": "NABH", "title": "TPA, Insurance and NABH", "file": "", "published": false, "questionsPerTest": 10 },
-    { "id": 14, "part": "NABH", "title": "Reading a Hospital", "file": "", "published": false, "questionsPerTest": 10 }
+    { "id": 6, "part": "NABH", "title": "What NABH Is", "file": "module-06.md", "published": true, "questionsPerTest": 10 },
+    { "id": 7, "part": "NABH", "title": "How the Standards Are Organised", "file": "module-07.md", "published": true, "questionsPerTest": 10 },
+    { "id": 8, "part": "NABH", "title": "NABH Chapters in Plain Language, Part 1", "file": "module-08.md", "published": true, "questionsPerTest": 10 },
+    { "id": 9, "part": "NABH", "title": "NABH Chapters in Plain Language, Part 2", "file": "module-09.md", "published": true, "questionsPerTest": 10 },
+    { "id": 10, "part": "NABH", "title": "Quality and Safety Tools", "file": "module-10.md", "published": true, "questionsPerTest": 10 },
+    { "id": 11, "part": "NABH", "title": "Infection Control, Biomedical Waste and Fire Safety", "file": "module-11.md", "published": true, "questionsPerTest": 10 },
+    { "id": 12, "part": "Connecting NABH to Your Work", "title": "Licences and Statutory Compliance", "file": "module-12.md", "published": true, "questionsPerTest": 10 },
+    { "id": 13, "part": "Connecting NABH to Your Work", "title": "TPA, Insurance and NABH", "file": "module-13.md", "published": true, "questionsPerTest": 10 },
+    { "id": 14, "part": "Connecting NABH to Your Work", "title": "Reading a Hospital", "file": "module-14.md", "published": true, "questionsPerTest": 10 }
   ]
 }

@@ -78,7 +78,7 @@ Common categories are general ward, twin or semi-private room, private room, del
 
 ### Medical Records Department (MRD)
 
-The MRD stores files after discharge and issues copies on request. Each hospital must have a written policy on how long it keeps records. The medical council regulations set a minimum retention period of 3 years for indoor records, and many hospitals keep them longer. Records are confidential. A copy goes only to the patient, an authorised person, the insurer or a legal authority, and the release is noted in a register. We will confirm the retention rule against the NABH standards in Module 9.
+The MRD stores files after discharge and issues copies on request. Each hospital must have a written policy on how long it keeps records. The medical council regulations set a minimum retention period of 3 years for indoor records, and many hospitals keep them longer. Records are confidential. A copy goes only to the patient, an authorised person, the insurer or a legal authority, and the release is noted in a register. NABH asks each hospital to set its own retention periods for OPD, IPD and MLC records in line with these rules, as Module 9 explains.
 
 ### Glossary
 

@@ -99,7 +99,7 @@ A drip is a slow continuous IV infusion. A bolus is a dose pushed quickly in one
 
 ### Safe giving of medicines
 
-Nurses follow the rights of medication. The first five are the right patient, the right drug, the right dose, the right route and the right time. NABH adds more, and we will cover them in Module 8. Before giving any medicine the nurse also checks the patient's allergy status and the expiry date.
+Nurses follow the rights of medication. The first five are the right patient, the right drug, the right dose, the right route and the right time. Most hospitals train on a longer list, covered in Module 8. Before giving any medicine the nurse also checks the patient's allergy status and the expiry date.
 
 A near expiry medicine is one close to its expiry date. The hospital keeps such stock separate and marked so that it is used first or returned before it expires.
 

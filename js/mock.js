@@ -134,6 +134,7 @@ window.MockBackend = (function () {
       if (!row2.readComplete) return { ok: false, code: "NOT_READ", error: "Please finish reading the module before taking the test." };
 
       var bank = QUESTIONS.filter(function (q) { return q[0] === mod2.id; });
+      if (bank.length === 0) return { ok: false, error: "There are no questions for this module yet." };
       var picked = shuffle(bank.slice()).slice(0, Math.min(mod2.questionsPerTest || 15, bank.length));
       var attemptId = "A" + Date.now();
       db.attempts.push({ attemptId: attemptId, name: name, moduleId: mod2.id, issuedAt: new Date().toISOString(), submittedAt: "", questionIds: picked.map(function (q) { return q[1]; }) });

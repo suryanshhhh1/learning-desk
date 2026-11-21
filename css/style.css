@@ -379,6 +379,9 @@ input[type="text"], input[type="password"] {
 .reader .kicker { color: var(--muted); }
 .reader ul { padding-left: 20px; margin: 0 0 16px; }
 .reader ul li::marker { color: var(--blue-500); }
+/* Checklists (- [ ] items): show the box, not a bullet */
+.reader li:has(> input[type="checkbox"]) { list-style: none; margin-left: -20px; }
+.reader li > input[type="checkbox"] { margin: 0 8px 0 0; accent-color: var(--blue-700); }
 .reader ol { padding-left: 26px; margin: 0 0 16px; }
 .reader li { margin-bottom: 8px; padding-left: 2px; }
 .reader ol li::marker { font-family: var(--mono); font-size: 13px; color: var(--muted); }

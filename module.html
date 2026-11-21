@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Module</title>
-  <link rel="stylesheet" href="css/style.css?v=20261121b">
+  <link rel="stylesheet" href="css/style.css?v=20261121c">
 </head>
 <body>
   <header class="masthead">
@@ -42,11 +42,11 @@
     </main>
   </div>
 
-  <script src="js/config.js?v=20261121b"></script>
-  <script src="js/mock.js?v=20261121b"></script>
-  <script src="js/api.js?v=20261121b"></script>
-  <script src="js/app.js?v=20261121b"></script>
-  <script src="lib/marked.min.js?v=20261121b"></script>
+  <script src="js/config.js?v=20261121c"></script>
+  <script src="js/mock.js?v=20261121c"></script>
+  <script src="js/api.js?v=20261121c"></script>
+  <script src="js/app.js?v=20261121c"></script>
+  <script src="lib/marked.min.js?v=20261121c"></script>
   <script>
     (async function () {
       if (!App.requireLogin()) return;
@@ -84,6 +84,15 @@
       // The wait applies only while the module is being read for the first
       // time (status "open"), and only on sections not yet seen.
       var minSeconds = Number(res.settings && res.settings.minSecondsPerSection) || 0;
+      var wordsPerSecond = Number(APP_CONFIG.WORDS_PER_SECOND) || 4;
+
+      // Wait for a screen: 1 second per WORDS_PER_SECOND words (tables included),
+      // but never less than minSecondsPerSection from the Sheet.
+      function waitFor(section) {
+        var text = (section.heading + " " + section.body).replace(/[#*|`>\-\[\]()_]/g, " ");
+        var words = text.split(/\s+/).filter(Boolean).length;
+        return Math.max(minSeconds, Math.ceil(words / wordsPerSecond));
+      }
       var useTimer = item.status === "open";
       var state = App.getReadState(moduleId);
       if (state.current >= sections.length) state.current = 0;
@@ -136,8 +145,9 @@
         var label = isLast ? lastLabel() : "Next";
         var next = $("nextBtn");
 
-        if (useTimer && state.current > state.maxSeen && minSeconds > 0) {
-          var left = minSeconds;
+        var wait = waitFor(s);
+        if (useTimer && state.current > state.maxSeen && wait > 0) {
+          var left = wait;
           next.disabled = true;
           next.textContent = label + " (" + left + ")";
           timer = setInterval(function () {
