@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NABH Onboarding</title>
+  <title>Learning Desk</title>
   <link rel="stylesheet" href="css/style.css?v=20261121b">
 </head>
 <body>
   <header class="masthead">
-    <a class="title" href="index.html" id="brandTitle">NABH Onboarding</a>
+    <a class="title" href="index.html" id="brandTitle">Learning Desk</a>
     <div class="cells">
       <span class="cell"><span class="crumbs" id="crumb">Welcome</span></span>
       <span class="cell hidden" id="progressCell"></span>
@@ -37,8 +37,9 @@
     <!-- ===================== Dashboard ===================== -->
     <main id="dashboard" class="hidden">
       <section class="welcome">
+        <p class="label muted" id="programLabel" style="margin-bottom:10px">Program</p>
         <h1>Hi <em id="greetName">there.</em></h1>
-        <p id="subheading">NABH Onboarding</p>
+        <p id="subheading"></p>
       </section>
 
       <section class="bento" aria-label="Your progress">
@@ -126,10 +127,11 @@
         var total = items.length;
         var passPct = (res.settings && res.settings.passPercent) || 85;
 
-        document.title = manifest.programTitle;
-        $("brandTitle").textContent = manifest.programTitle;
+        document.title = (manifest.siteTitle || "Learning Desk") + " / " + manifest.programTitle;
+        $("brandTitle").textContent = manifest.siteTitle || "Learning Desk";
         $("crumb").textContent = "Dashboard";
         $("greetName").textContent = name + ".";
+        $("programLabel").textContent = manifest.programTitle;
         $("subheading").textContent = "Read each module, pass its test, and the next one opens.";
         $("doneNum").textContent = done;
         $("totalNum").textContent = total;

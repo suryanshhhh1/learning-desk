@@ -1,6 +1,6 @@
-# NABH Onboarding
+# Learning Desk
 
-A small training site. Anushka reads each module one section at a time, then takes a test. The next module opens only after she passes. Her progress is saved in a Google Sheet, and the admin gets an email with her marks after every test.
+A small training site. The first program is **NABH Onboarding**. The site name and program name are set in `content/modules.json` (`siteTitle` and `programTitle`). Anushka reads each module one section at a time, then takes a test. The next module opens only after she passes. Her progress is saved in a Google Sheet, and the admin gets an email with her marks after every test.
 
 - **Website:** the files in this repository, served free by GitHub Pages.
 - **Backend:** a Google Sheet with an Apps Script (`apps-script/Code.gs`). It keeps users, progress, test attempts and the question bank, and sends the result emails.

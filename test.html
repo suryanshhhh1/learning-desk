@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="masthead">
-    <a class="title" href="index.html" id="brandTitle">NABH Onboarding</a>
+    <a class="title" href="index.html" id="brandTitle">Learning Desk</a>
     <div class="cells">
       <span class="cell"><span class="crumbs"><a href="index.html">Dashboard</a><span class="sep">&rsaquo;</span><span id="crumbModule">Module</span><span class="sep">&rsaquo;</span>Test</span></span>
       <span class="cell" id="answeredCell" aria-hidden="true"></span>
@@ -84,7 +84,7 @@
       var submitted = false;
 
       var manifest = await App.loadManifest();
-      $("brandTitle").textContent = manifest.programTitle;
+      $("brandTitle").textContent = manifest.siteTitle || "Learning Desk";
       var mod = manifest.modules.find(function (m) { return m.id === moduleId; });
       var modTitle = mod ? mod.title : "Module " + moduleId;
       document.title = "Test: Module " + moduleId;

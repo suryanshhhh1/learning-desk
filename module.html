@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="masthead">
-    <a class="title" href="index.html" id="brandTitle">NABH Onboarding</a>
+    <a class="title" href="index.html" id="brandTitle">Learning Desk</a>
     <div class="cells">
       <span class="cell"><span class="crumbs"><a href="index.html">Dashboard</a><span class="sep">&rsaquo;</span><span id="crumbModule">Module</span></span></span>
       <span class="cell" id="counterCell" aria-live="polite"></span>
@@ -62,7 +62,7 @@
       // Load the module list and the user's progress together.
       var results = await Promise.all([App.loadManifest(), Api.call("getProgress")]);
       var manifest = results[0];
-      $("brandTitle").textContent = manifest.programTitle;
+      $("brandTitle").textContent = manifest.siteTitle || "Learning Desk";
       var res = results[1];
       if (!res.ok) return fail(res.error);
 

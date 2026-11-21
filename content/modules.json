@@ -1,4 +1,5 @@
 {
+  "siteTitle": "Learning Desk",
   "programTitle": "NABH Onboarding",
   "modules": [
     { "id": 1, "part": "Healthcare Basics", "title": "How a Hospital Works", "file": "module-01.md", "published": true, "questionsPerTest": 15 },
