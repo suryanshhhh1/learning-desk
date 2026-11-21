@@ -1,0 +1,19 @@
+{
+  "programTitle": "NABH Onboarding",
+  "modules": [
+    { "id": 1, "title": "How a Hospital Works", "file": "module-01.md", "published": true, "questionsPerTest": 15 },
+    { "id": 2, "title": "Patient Records and Numbers", "file": "module-02.md", "published": true, "questionsPerTest": 15 },
+    { "id": 3, "title": "Medical Language", "file": "module-03.md", "published": true, "questionsPerTest": 15 },
+    { "id": 4, "title": "Medicines", "file": "module-04.md", "published": true, "questionsPerTest": 15 },
+    { "id": 5, "title": "Surgery, Anaesthesia and Critical Care", "file": "module-05.md", "published": true, "questionsPerTest": 15 },
+    { "id": 6, "title": "What NABH Is", "file": "", "published": false, "questionsPerTest": 15 },
+    { "id": 7, "title": "How the Standards Are Organised", "file": "", "published": false, "questionsPerTest": 15 },
+    { "id": 8, "title": "NABH Chapters in Plain Language, Part 1", "file": "", "published": false, "questionsPerTest": 15 },
+    { "id": 9, "title": "NABH Chapters in Plain Language, Part 2", "file": "", "published": false, "questionsPerTest": 15 },
+    { "id": 10, "title": "Quality and Safety Tools", "file": "", "published": false, "questionsPerTest": 15 },
+    { "id": 11, "title": "Infection Control, Biomedical Waste and Fire Safety", "file": "", "published": false, "questionsPerTest": 15 },
+    { "id": 12, "title": "Licences and Statutory Compliance", "file": "", "published": false, "questionsPerTest": 15 },
+    { "id": 13, "title": "TPA, Insurance and NABH", "file": "", "published": false, "questionsPerTest": 15 },
+    { "id": 14, "title": "Reading a Hospital", "file": "", "published": false, "questionsPerTest": 15 }
+  ]
+}

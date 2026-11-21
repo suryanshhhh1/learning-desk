@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Module</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <a href="index.html">&larr; Dashboard</a>
+      <span class="muted" id="counterTop"></span>
+    </div>
+
+    <div id="message" class="message hidden"></div>
+    <p id="loading" class="muted">Loading...</p>
+
+    <article id="reader" class="reader hidden">
+      <div class="counter" id="counter"></div>
+      <div class="module-title" id="moduleTitle"></div>
+      <h2 id="sectionHeading"></h2>
+      <div id="sectionBody"></div>
+
+      <div class="nav">
+        <button type="button" class="btn secondary" id="backBtn">Back</button>
+        <button type="button" class="btn" id="nextBtn">Next</button>
+      </div>
+    </article>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/mock.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="lib/marked.min.js"></script>
+  <script>
+    (async function () {
+      if (!App.requireLogin()) return;
+      var $ = function (id) { return document.getElementById(id); };
+      var moduleId = Number(App.param("id"));
+
+      // Load the module list and the user's progress together.
+      var results = await Promise.all([App.loadManifest(), Api.call("getProgress")]);
+      var manifest = results[0];
+      var res = results[1];
+      if (!res.ok) { App.showMessage(res.error, true); $("loading").classList.add("hidden"); return; }
+
+      var item = App.moduleStatuses(manifest.modules, res.progress).find(function (i) { return i.module.id === moduleId; });
+      if (!item || item.status === "locked" || item.status === "comingSoon") {
+        $("loading").classList.add("hidden");
+        App.showMessage(item && item.status === "comingSoon" ? "This module has not been published yet." : "This module is locked. Pass the previous module first.", true);
+        return;
+      }
+
+      // Load and split the markdown file.
+      var mdRes = await fetch("content/" + item.module.file, { cache: "no-cache" });
+      if (!mdRes.ok) { $("loading").classList.add("hidden"); App.showMessage("Could not load the module text.", true); return; }
+      var doc = App.splitSections(await mdRes.text());
+      var sections = doc.sections;
+      document.title = doc.title || item.module.title;
+      $("moduleTitle").textContent = doc.title || ("Module " + moduleId + ": " + item.module.title);
+
+      // The wait applies only while the module is still being read for the first time
+      // (status "open"), and only on sections not yet seen.
+      var minSeconds = Number(res.settings && res.settings.minSecondsPerSection) || 0;
+      var useTimer = item.status === "open";
+      var state = App.getReadState(moduleId);
+      if (state.current >= sections.length) state.current = 0;
+
+      var timer = null;
+
+      function lastLabel() {
+        return item.status === "completed" ? "Back to dashboard" : "Take the test";
+      }
+
+      function render() {
+        clearInterval(timer);
+        var s = sections[state.current];
+        var counterText = "Section " + (state.current + 1) + " of " + sections.length;
+        $("counter").textContent = counterText;
+        $("counterTop").textContent = counterText;
+        $("sectionHeading").textContent = state.current === 0 && s.heading === "Introduction" ? "Introduction" : s.heading;
+        $("sectionBody").innerHTML = marked.parse(s.body);
+
+        // Wrap every table so it can scroll sideways on a phone.
+        $("sectionBody").querySelectorAll("table").forEach(function (t) {
+          var w = document.createElement("div");
+          w.className = "table-scroll";
+          t.parentNode.insertBefore(w, t);
+          w.appendChild(t);
+        });
+
+        $("backBtn").disabled = state.current === 0;
+        var isLast = state.current === sections.length - 1;
+        var label = isLast ? lastLabel() : "Next";
+        var next = $("nextBtn");
+
+        var needsWait = useTimer && state.current > state.maxSeen && minSeconds > 0;
+        if (needsWait) {
+          var left = minSeconds;
+          next.disabled = true;
+          next.textContent = label + " (" + left + ")";
+          timer = setInterval(function () {
+            left--;
+            if (left <= 0) {
+              clearInterval(timer);
+              state.maxSeen = Math.max(state.maxSeen, state.current);
+              App.setReadState(moduleId, state);
+              next.disabled = false;
+              next.textContent = label;
+            } else {
+              next.textContent = label + " (" + left + ")";
+            }
+          }, 1000);
+        } else {
+          next.disabled = false;
+          next.textContent = label;
+        }
+
+        App.setReadState(moduleId, state);
+        window.scrollTo(0, 0);
+      }
+
+      $("backBtn").addEventListener("click", function () {
+        if (state.current > 0) { state.current--; render(); }
+      });
+
+      $("nextBtn").addEventListener("click", async function () {
+        if (state.current < sections.length - 1) {
+          state.current++;
+          render();
+          return;
+        }
+        // Last screen.
+        if (item.status === "completed") { window.location.href = "index.html"; return; }
+        var btn = $("nextBtn");
+        btn.disabled = true;
+        btn.textContent = "Please wait...";
+        var r = await Api.call("markReadComplete", { moduleId: moduleId });
+        if (!r.ok) { App.showMessage(r.error, true); btn.disabled = false; btn.textContent = lastLabel(); return; }
+        window.location.href = "test.html?id=" + moduleId;
+      });
+
+      $("loading").classList.add("hidden");
+      $("reader").classList.remove("hidden");
+      render();
+    })();
+  </script>
+</body>
+</html>

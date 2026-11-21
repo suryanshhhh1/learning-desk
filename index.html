@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NABH Onboarding</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- Login screen -->
+    <section id="login" class="login-box hidden">
+      <h1>NABH Onboarding</h1>
+      <p class="muted">Log in with your name and PIN.</p>
+      <div id="message" class="message hidden"></div>
+      <form id="loginForm" autocomplete="on">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" autocomplete="username" required>
+        <label for="pin">PIN</label>
+        <input type="password" id="pin" name="pin" inputmode="numeric" autocomplete="current-password" required>
+        <button type="submit" class="btn full" id="loginBtn">Log in</button>
+      </form>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="hidden">
+      <div class="topbar">
+        <span class="muted" id="programTitle">NABH Onboarding</span>
+        <button type="button" class="linklike" id="logoutBtn">Log out</button>
+      </div>
+      <h1 id="greeting">Hi</h1>
+      <p class="muted" id="subheading">NABH Onboarding</p>
+      <p id="summary" class="small"></p>
+      <div class="progress-bar"><div id="bar" style="width:0%"></div></div>
+      <div id="cards" class="cards"></div>
+    </section>
+
+    <p id="loading" class="muted">Loading...</p>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/mock.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+
+      // ---------- Login ----------
+      function showLogin() {
+        $("loading").classList.add("hidden");
+        $("dashboard").classList.add("hidden");
+        $("login").classList.remove("hidden");
+        if (App.param("expired")) App.showMessage("Your session has expired. Please log in again.");
+        $("name").focus();
+      }
+
+      $("loginForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        App.showMessage("");
+        $("loginBtn").disabled = true;
+        $("loginBtn").textContent = "Logging in...";
+        var res = await Api.call("login", { name: $("name").value.trim(), pin: $("pin").value.trim() });
+        $("loginBtn").disabled = false;
+        $("loginBtn").textContent = "Log in";
+        if (!res.ok) { App.showMessage(res.error, true); return; }
+        Api.saveSession(res.token, res.name);
+        history.replaceState(null, "", "index.html");
+        showDashboard();
+      });
+
+      $("logoutBtn").addEventListener("click", function () {
+        Api.clearSession();
+        showLogin();
+      });
+
+      // ---------- Dashboard ----------
+      async function showDashboard() {
+        $("login").classList.add("hidden");
+        $("loading").classList.remove("hidden");
+
+        var results = await Promise.all([App.loadManifest(), Api.call("getProgress")]);
+        var manifest = results[0];
+        var res = results[1];
+        if (!res.ok) { $("loading").textContent = res.error; return; }
+
+        var name = res.name || Api.getName();
+        $("greeting").textContent = "Hi " + name;
+        $("subheading").textContent = manifest.programTitle;
+        $("programTitle").textContent = manifest.programTitle;
+        document.title = manifest.programTitle;
+
+        var items = App.moduleStatuses(manifest.modules, res.progress);
+        var done = items.filter(function (i) { return i.status === "completed"; }).length;
+        var total = items.length;
+        $("summary").textContent = done + " of " + total + " modules completed";
+        $("bar").style.width = Math.round((done / total) * 100) + "%";
+
+        var cards = $("cards");
+        cards.innerHTML = "";
+        items.forEach(function (item) { cards.appendChild(renderCard(item)); });
+
+        $("loading").classList.add("hidden");
+        $("dashboard").classList.remove("hidden");
+      }
+
+      function renderCard(item) {
+        var mod = item.module;
+        var card = document.createElement("button");
+        card.type = "button";
+        card.className = "card";
+
+        var statusText, actionText = "", reason = "", href = null;
+        switch (item.status) {
+          case "completed":
+            statusText = "<span class='sym'>&#10003;</span>Completed, best score " + App.escapeHtml(item.progress.bestScorePct) + "%";
+            actionText = "Review";
+            href = "module.html?id=" + mod.id;
+            break;
+          case "testReady":
+            statusText = "Test ready";
+            actionText = "Take test";
+            href = "test.html?id=" + mod.id;
+            break;
+          case "open":
+            statusText = "Open";
+            actionText = App.getReadState(mod.id).maxSeen >= 0 ? "Continue" : "Start";
+            href = "module.html?id=" + mod.id;
+            break;
+          case "locked":
+            statusText = "<span class='sym'>&#9633;</span>Locked";
+            reason = "Pass Module " + (mod.id - 1) + " to unlock this module.";
+            card.classList.add("inactive");
+            break;
+          default: // comingSoon
+            statusText = "Coming soon";
+            reason = "This module has not been published yet.";
+            card.classList.add("inactive");
+        }
+
+        card.innerHTML =
+          "<div class='num'>Module " + mod.id + "</div>" +
+          "<div class='title'>" + App.escapeHtml(mod.title) + "</div>" +
+          "<div class='status'><span>" + statusText + "</span><span class='action'>" + actionText + "</span></div>" +
+          "<div class='reason muted hidden'></div>";
+
+        card.addEventListener("click", function () {
+          if (href) { window.location.href = href; return; }
+          // Locked or coming soon: do nothing except show the reason.
+          var r = card.querySelector(".reason");
+          r.textContent = reason;
+          r.classList.remove("hidden");
+        });
+        return card;
+      }
+
+      // ---------- Start ----------
+      if (Api.getToken()) showDashboard(); else showLogin();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <a href="index.html">&larr; Dashboard</a>
+      <span class="muted" id="answeredCount"></span>
+    </div>
+
+    <div id="message" class="message hidden"></div>
+    <p id="loading" class="muted">Preparing your test...</p>
+
+    <!-- Questions -->
+    <section id="testView" class="hidden">
+      <h1 id="testTitle"></h1>
+      <p class="muted small" id="testInfo"></p>
+      <form id="testForm"></form>
+      <button type="button" class="btn full" id="submitBtn" disabled>Submit</button>
+      <p class="muted small" id="submitHint">Answer every question to enable Submit.</p>
+    </section>
+
+    <!-- Result -->
+    <section id="resultView" class="hidden">
+      <p class="muted" id="resultTitle"></p>
+      <div class="score" id="score"></div>
+      <p class="muted" id="scoreDetail"></p>
+      <p class="result-line" id="resultLine"></p>
+      <div class="actions" id="resultActions"></div>
+      <h2>Review</h2>
+      <div id="review"></div>
+      <div class="actions" id="resultActionsBottom"></div>
+    </section>
+  </div>
+
+  <!-- Confirmation dialog -->
+  <div class="overlay hidden" id="confirmBox" role="dialog" aria-modal="true">
+    <div class="dialog">
+      <p><strong>Submit your answers?</strong></p>
+      <p class="muted small">You cannot change them after submitting.</p>
+      <div class="actions">
+        <button type="button" class="btn secondary" id="cancelBtn">Cancel</button>
+        <button type="button" class="btn" id="confirmBtn">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/mock.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    (async function () {
+      if (!App.requireLogin()) return;
+      var $ = function (id) { return document.getElementById(id); };
+      var moduleId = Number(App.param("id"));
+
+      var manifest = await App.loadManifest();
+      var mod = manifest.modules.find(function (m) { return m.id === moduleId; });
+      var modTitle = mod ? "Module " + mod.id + ": " + mod.title : "Module " + moduleId;
+      document.title = "Test: " + modTitle;
+
+      // Ask the server for a new set of questions. The server checks the module
+      // is unlocked and has been read. No answers are sent to the browser here.
+      var test = await Api.call("startTest", { moduleId: moduleId });
+      $("loading").classList.add("hidden");
+      if (!test.ok) {
+        App.showMessage(test.error, true);
+        if (test.code === "NOT_READ") {
+          $("message").insertAdjacentHTML("beforeend", " <a href='module.html?id=" + moduleId + "'>Go to the module</a>");
+        }
+        return;
+      }
+
+      // ---------- Show the questions ----------
+      $("testTitle").textContent = "Test: " + modTitle;
+      $("testInfo").textContent = test.questions.length + " questions. Choose one answer for each.";
+      var form = $("testForm");
+      test.questions.forEach(function (q, i) {
+        var div = document.createElement("div");
+        div.className = "question";
+        var html = "<div class='q'>" + (i + 1) + ". " + App.escapeHtml(q.question) + "</div>";
+        q.options.forEach(function (o) {
+          html += "<label class='option'><input type='radio' name='" + App.escapeHtml(q.questionId) + "' value='" + o.key + "'><span>" + App.escapeHtml(o.text) + "</span></label>";
+        });
+        div.innerHTML = html;
+        form.appendChild(div);
+      });
+      $("testView").classList.remove("hidden");
+
+      function collectAnswers() {
+        var answers = {};
+        test.questions.forEach(function (q) {
+          var checked = form.querySelector("input[name='" + CSS.escape(q.questionId) + "']:checked");
+          if (checked) answers[q.questionId] = checked.value;
+        });
+        return answers;
+      }
+
+      function updateCount() {
+        var n = Object.keys(collectAnswers()).length;
+        var all = n === test.questions.length;
+        $("answeredCount").textContent = n + " of " + test.questions.length + " answered";
+        $("submitBtn").disabled = !all;
+        $("submitHint").classList.toggle("hidden", all);
+      }
+      form.addEventListener("change", updateCount);
+      updateCount();
+
+      // ---------- Submit with confirmation ----------
+      $("submitBtn").addEventListener("click", function () { $("confirmBox").classList.remove("hidden"); });
+      $("cancelBtn").addEventListener("click", function () { $("confirmBox").classList.add("hidden"); });
+
+      $("confirmBtn").addEventListener("click", async function () {
+        $("confirmBtn").disabled = true;
+        $("confirmBtn").textContent = "Submitting...";
+        var r = await Api.call("submitTest", { attemptId: test.attemptId, answers: collectAnswers() });
+        $("confirmBox").classList.add("hidden");
+        if (!r.ok) {
+          $("confirmBtn").disabled = false;
+          $("confirmBtn").textContent = "Submit";
+          App.showMessage(r.error, true);
+          window.scrollTo(0, 0);
+          return;
+        }
+        showResult(r);
+      });
+
+      // ---------- Result ----------
+      function showResult(r) {
+        // After a fail the whole module has to be read again from section 1.
+        if (!r.passed) App.resetReadState(moduleId);
+
+        $("testView").classList.add("hidden");
+        $("answeredCount").textContent = "";
+        $("resultTitle").textContent = modTitle + ", attempt " + r.attemptNumber;
+        $("score").textContent = r.scorePct + "%";
+        $("scoreDetail").textContent = r.correct + " of " + r.total + " correct";
+        $("resultLine").textContent = r.passed ? "Passed" : "Not passed. Read the module again and retake the test.";
+
+        var buttons = "<a class='btn' href='index.html'>Back to dashboard</a>";
+        if (!r.passed) buttons += "<a class='btn secondary' href='module.html?id=" + moduleId + "'>Read module again</a>";
+        $("resultActions").innerHTML = buttons;
+        $("resultActionsBottom").innerHTML = buttons;
+
+        $("review").innerHTML = r.review.map(function (q, i) {
+          return "<div class='review-item'>" +
+            "<p><span class='mark'>" + (q.isCorrect ? "&#10003; Correct" : "&#10007; Wrong") + "</span></p>" +
+            "<p><strong>" + (i + 1) + ". " + App.escapeHtml(q.question) + "</strong></p>" +
+            "<p class='line'>Your answer: " + App.escapeHtml(q.yourAnswer) + "</p>" +
+            "<p class='line'>Correct answer: " + App.escapeHtml(q.correctAnswer) + "</p>" +
+            (q.explanation ? "<p class='line muted'>" + App.escapeHtml(q.explanation) + "</p>" : "") +
+            "</div>";
+        }).join("");
+
+        $("resultView").classList.remove("hidden");
+        window.scrollTo(0, 0);
+      }
+    })();
+  </script>
+</body>
+</html>
