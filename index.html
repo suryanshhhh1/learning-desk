@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Learning Desk</title>
-  <link rel="stylesheet" href="css/style.css?v=20261121d">
+  <link rel="stylesheet" href="css/style.css?v=20261123a">
 </head>
 <body>
   <header class="masthead">
@@ -69,10 +69,10 @@
     <p id="loading" class="loading">Loading...</p>
   </div>
 
-  <script src="js/config.js?v=20261121d"></script>
-  <script src="js/mock.js?v=20261121d"></script>
-  <script src="js/api.js?v=20261121d"></script>
-  <script src="js/app.js?v=20261121d"></script>
+  <script src="js/config.js?v=20261123a"></script>
+  <script src="js/mock.js?v=20261123a"></script>
+  <script src="js/api.js?v=20261123a"></script>
+  <script src="js/app.js?v=20261123a"></script>
   <script>
     (function () {
       var $ = function (id) { return document.getElementById(id); };
@@ -116,9 +116,12 @@
         $("login").classList.add("hidden");
         $("loading").classList.remove("hidden");
 
-        var results = await Promise.all([App.loadManifest(), Api.call("getProgress")]);
-        var manifest = results[0];
-        var res = results[1];
+        var manifest = await App.loadManifest();
+        // Draw from the saved copy at once; redraw if the server's answer differs.
+        await Api.loadProgress(function (res) { render(manifest, res); });
+      }
+
+      function render(manifest, res) {
         if (!res.ok) { $("loading").textContent = res.error; return; }
 
         var name = res.name || Api.getName();

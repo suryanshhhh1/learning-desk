@@ -34,12 +34,21 @@ var DEFAULT_SETTINGS = [
 
 var SESSION_HOURS = 12;
 
+// Users, Settings and Questions rarely change, so they are kept in a
+// cache for this many seconds. Edits in the Sheet show up within this time.
+var SHEET_CACHE_SECONDS = 60;
+var CACHED_TABS = { Users: true, Settings: true };
+
+// Rows already read during this request, by tab name.
+var ROWS = {};
+
 // =============================================================
 // Web app entry point
 // =============================================================
 
 function doPost(e) {
   var result;
+  ROWS = {};
   try {
     var req = JSON.parse(e.postData.contents);
     result = route(req);
@@ -96,7 +105,10 @@ function login(req) {
     pinHash: pinHash(user.pin),   // a changed PIN ends this session
     expires: Date.now() + SESSION_HOURS * 3600 * 1000
   }));
-  return { ok: true, token: token, name: String(user.name).trim() };
+  // Send progress along with the login so the dashboard needs no second request.
+  var result = getProgress(String(user.name).trim());
+  result.token = token;
+  return result;
 }
 
 function getProgress(name) {
@@ -133,7 +145,7 @@ function startTest(name, moduleId) {
     return { ok: false, code: 'NOT_READ', error: 'Please finish reading the module before taking the test.' };
   }
 
-  var bank = readRows('Questions').filter(function (q) { return Number(q.moduleId) === moduleId && q.questionId; });
+  var bank = questionsFor(moduleId);
   if (bank.length === 0) return { ok: false, error: 'There are no questions for this module yet.' };
 
   // Pick questionsPerTest random questions, or all of them if the bank is smaller.
@@ -177,7 +189,7 @@ function submitTest(name, attemptId, answers) {
 
   // Grade on the server.
   var bankById = {};
-  readRows('Questions').forEach(function (q) { bankById[String(q.questionId)] = q; });
+  questionsFor(moduleId).forEach(function (q) { bankById[String(q.questionId)] = q; });
   var ids = String(att.questionIds).split(',').filter(String);
 
   var review = ids.map(function (id) {
@@ -234,6 +246,7 @@ function submitTest(name, attemptId, answers) {
     total: total,
     scorePct: scorePct,
     passed: passed,
+    moduleId: moduleId,
     attemptNumber: attemptNumber,
     review: review.map(function (r) {
       return {
@@ -252,8 +265,7 @@ function reviewQuestions(name, moduleId) {
   if (!progress || !isTrue(progress.passed)) {
     return { ok: false, code: 'LOCKED', error: 'Pass this module\'s test to see its questions and answers.' };
   }
-  var questions = readRows('Questions')
-    .filter(function (q) { return Number(q.moduleId) === moduleId && q.questionId; })
+  var questions = questionsFor(moduleId)
     .map(function (q) {
       var key = String(q.correct || '').trim().toUpperCase();
       return {
@@ -396,6 +408,12 @@ function getSheet(tab) {
 // Returns the rows of a tab as objects keyed by column name.
 // Each object also has _row, its row number in the sheet.
 function readRows(tab) {
+  if (ROWS[tab]) return ROWS[tab];
+  var cache = CACHED_TABS[tab] ? CacheService.getScriptCache() : null;
+  if (cache) {
+    var hit = cache.get('rows_' + tab);
+    if (hit) return (ROWS[tab] = JSON.parse(hit));
+  }
   var sheet = getSheet(tab);
   var values = sheet.getDataRange().getValues();
   var headers = values[0].map(function (h) { return String(h).trim(); });
@@ -406,10 +424,28 @@ function readRows(tab) {
     headers.forEach(function (h, j) { obj[h] = values[i][j]; });
     rows.push(obj);
   }
+  if (cache) {
+    // Dates do not survive the cache, but these tabs only hold text and numbers.
+    try { cache.put('rows_' + tab, JSON.stringify(rows), SHEET_CACHE_SECONDS); } catch (e) { /* too large to cache */ }
+  }
+  ROWS[tab] = rows;
   return rows;
 }
 
+// The question bank of one module. Cached per module, because the whole
+// bank is too large for one cache entry.
+function questionsFor(moduleId) {
+  var cache = CacheService.getScriptCache();
+  var key = 'q_' + moduleId;
+  var hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  var bank = readRows('Questions').filter(function (q) { return Number(q.moduleId) === moduleId && q.questionId; });
+  try { cache.put(key, JSON.stringify(bank), SHEET_CACHE_SECONDS); } catch (e) { /* too large to cache */ }
+  return bank;
+}
+
 function appendRow(tab, obj) {
+  delete ROWS[tab];
   getSheet(tab).appendRow(TABS[tab].map(function (c) { return obj[c] === undefined ? '' : obj[c]; }));
 }
 
@@ -428,6 +464,7 @@ function findProgress(name, moduleId) {
 // Update (or create) the Progress row for one user and module.
 function updateProgress(name, moduleId, change) {
   var sheet = getSheet('Progress');
+  delete ROWS.Progress;
   var cols = TABS.Progress;
   var row = findProgress(name, moduleId);
   var current = row || { name: name, moduleId: moduleId, readComplete: false, passed: false, bestScorePct: '', attempts: 0 };
@@ -439,6 +476,7 @@ function updateProgress(name, moduleId, change) {
   } else {
     sheet.appendRow(values);
   }
+  delete ROWS.Progress;
 }
 
 // =============================================================
@@ -475,6 +513,10 @@ function shuffle(arr) {
 // =============================================================
 
 function setup() {
+  // Start from the Sheet itself, not from cached copies.
+  var keys = ['modules', 'rows_Users', 'rows_Settings'];
+  for (var m = 1; m <= 50; m++) keys.push('q_' + m);
+  CacheService.getScriptCache().removeAll(keys);
   Object.keys(TABS).forEach(getSheet);
 
   // PINs must be stored as text, otherwise 0000 becomes 0.

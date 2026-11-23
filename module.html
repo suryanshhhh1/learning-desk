@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Module</title>
-  <link rel="stylesheet" href="css/style.css?v=20261121d">
+  <link rel="stylesheet" href="css/style.css?v=20261123a">
 </head>
 <body>
   <header class="masthead">
@@ -43,11 +43,11 @@
     </main>
   </div>
 
-  <script src="js/config.js?v=20261121d"></script>
-  <script src="js/mock.js?v=20261121d"></script>
-  <script src="js/api.js?v=20261121d"></script>
-  <script src="js/app.js?v=20261121d"></script>
-  <script src="lib/marked.min.js?v=20261121d"></script>
+  <script src="js/config.js?v=20261123a"></script>
+  <script src="js/mock.js?v=20261123a"></script>
+  <script src="js/api.js?v=20261123a"></script>
+  <script src="js/app.js?v=20261123a"></script>
+  <script src="lib/marked.min.js?v=20261123a"></script>
   <script>
     (async function () {
       if (!App.requireLogin()) return;
@@ -60,20 +60,36 @@
         App.showMessage(text, true);
       }
 
-      // Load the module list and the user's progress together.
-      var results = await Promise.all([App.loadManifest(), Api.call("getProgress")]);
-      var manifest = results[0];
+      // Progress comes from the saved copy at once. If the server's
+      // answer later changes this module's status, the page reloads.
+      var firstStatus = null;
+      var manifestP = App.loadManifest();
+      var progressP = new Promise(function (resolve) {
+        Api.loadProgress(async function (r) {
+          if (firstStatus === null) { firstStatus = ""; resolve(r); return; }
+          var m = await manifestP;
+          var fresh = r.ok && App.moduleStatuses(m.modules, r.progress).find(function (i) { return i.module.id === moduleId; });
+          if (firstStatus && fresh && fresh.status !== firstStatus) window.location.reload();
+        });
+      });
+
+      var manifest = await manifestP;
       $("brandTitle").textContent = manifest.siteTitle || "Learning Desk";
-      var res = results[1];
+      var listed = manifest.modules.find(function (m) { return m.id === moduleId; });
+      // Start loading the text while progress is still on its way.
+      var mdP = listed && listed.published ? fetch("content/" + listed.file, { cache: "no-cache" }) : null;
+
+      var res = await progressP;
       if (!res.ok) return fail(res.error);
 
       var item = App.moduleStatuses(manifest.modules, res.progress).find(function (i) { return i.module.id === moduleId; });
       if (!item) return fail("This module does not exist.");
+      firstStatus = item.status;
       if (item.status === "comingSoon") return fail("This module has not been published yet.");
       if (item.status === "locked") return fail("This module is locked. Pass the previous module first.");
 
       // Load and split the markdown file.
-      var mdRes = await fetch("content/" + item.module.file, { cache: "no-cache" });
+      var mdRes = await mdP;
       if (!mdRes.ok) return fail("Could not load the module text.");
       var doc = App.splitSections(await mdRes.text());
       var sections = doc.sections;
