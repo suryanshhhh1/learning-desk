@@ -127,11 +127,14 @@
       // ---------- Timer ----------
       // The server keeps the real clock; reloading the page carries on with
       // the same time left. When it reaches zero the answers are sent as they are.
-      var deadline = Date.now() + test.secondsLeft * 1000;
+      // An older backend sends no time limit; then the test has no timer.
+      var timed = Number(test.secondsLeft) > 0;
+      var deadline = timed ? Date.now() + test.secondsLeft * 1000 : Infinity;
       var mins = Math.round(test.timeLimitSeconds / 60);
       var allowed = test.timeLimitSeconds < 60 ? test.timeLimitSeconds + " seconds" : mins + " minute" + (mins === 1 ? "" : "s");
       $("timeRule").textContent = "You have " + allowed + ". When time runs out, your answers are submitted as they are.";
-      $("timerCell").classList.remove("hidden");
+      if (!timed) $("timeRule").textContent = "";
+      else $("timerCell").classList.remove("hidden");
       var warned = false;
       function tick() {
         if (submitted) return;
@@ -145,8 +148,8 @@
         if (low && !warned) { warned = true; $("timerAnnounce").textContent = "One minute left."; }
         if (left === 0) { clearInterval(timerId); timeUp(); }
       }
-      var timerId = setInterval(tick, 1000);
-      tick();
+      var timerId = timed ? setInterval(tick, 1000) : null;
+      if (timed) tick();
 
       function timeUp() {
         $("timerAnnounce").textContent = "Time is up. Submitting your answers.";
