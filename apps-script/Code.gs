@@ -26,6 +26,8 @@ var DEFAULT_SETTINGS = [
   ['passPercent', 85],
   ['adminEmail', 'hboy7114@gmail.com'],
   ['minSecondsPerSection', 20],
+  // Time allowed for a test: this many seconds for each question.
+  ['secondsPerQuestion', 60],
   // The GitHub Pages address of the site. The backend reads
   // content/modules.json from here to know titles, which modules are
   // published and how many questions each test has.
@@ -33,6 +35,9 @@ var DEFAULT_SETTINGS = [
 ];
 
 var SESSION_HOURS = 12;
+
+// Extra seconds allowed after the timer ends, for a slow connection.
+var GRACE_SECONDS = 30;
 
 // Users, Settings and Questions rarely change, so they are kept in a
 // cache for this many seconds. Edits in the Sheet show up within this time.
@@ -147,21 +152,48 @@ function startTest(name, moduleId) {
 
   var bank = questionsFor(moduleId);
   if (bank.length === 0) return { ok: false, error: 'There are no questions for this module yet.' };
-
-  // Pick questionsPerTest random questions, or all of them if the bank is smaller.
   var count = Math.min(Number(mod.questionsPerTest) || 15, bank.length);
-  var picked = shuffle(bank).slice(0, count);
+  var limit = timeLimitSeconds(count);
 
-  var attemptId = 'A' + new Date().getTime() + '-' + Math.floor(Math.random() * 1000);
-  appendRow('Attempts', {
-    attemptId: attemptId,
-    name: name,
-    moduleId: moduleId,
-    issuedAt: new Date(),
-    submittedAt: '',
-    questionIds: picked.map(function (q) { return q.questionId; }).join(','),
-    answersGiven: '', correct: '', total: '', scorePct: '', result: ''
-  });
+  var mine = readRows('Attempts').filter(function (a) { return sameName(a.name, name) && Number(a.moduleId) === moduleId; });
+
+  // A test that was started and not submitted, with time left, carries on
+  // with the same questions and the same clock (for example after a reload).
+  var open = mine.filter(function (a) {
+    return !a.submittedAt && secondsLeft(a.issuedAt, limit) > 0;
+  }).pop();
+
+  var attemptId, picked, left;
+  if (open) {
+    attemptId = String(open.attemptId);
+    var byId = {};
+    bank.forEach(function (q) { byId[String(q.questionId)] = q; });
+    picked = String(open.questionIds).split(',').map(function (id) { return byId[id]; }).filter(Boolean);
+    left = secondsLeft(open.issuedAt, limit);
+  } else {
+    // Questions this user has seen fewer times come first, so a second or
+    // third attempt gets questions they have not had before.
+    var seen = {};
+    mine.forEach(function (a) {
+      String(a.questionIds).split(',').forEach(function (id) { seen[id] = (seen[id] || 0) + 1; });
+    });
+    picked = shuffle(bank)
+      .sort(function (a, b) { return (seen[String(a.questionId)] || 0) - (seen[String(b.questionId)] || 0); })
+      .slice(0, count);
+    picked = shuffle(picked);
+
+    attemptId = 'A' + new Date().getTime() + '-' + Math.floor(Math.random() * 1000);
+    appendRow('Attempts', {
+      attemptId: attemptId,
+      name: name,
+      moduleId: moduleId,
+      issuedAt: new Date(),
+      submittedAt: '',
+      questionIds: picked.map(function (q) { return q.questionId; }).join(','),
+      answersGiven: '', correct: '', total: '', scorePct: '', result: ''
+    });
+    left = limit;
+  }
 
   // Send questions and shuffled options. No correct answer, no explanation.
   var questions = picked.map(function (q) {
@@ -170,7 +202,7 @@ function startTest(name, moduleId) {
       .map(function (k) { return { key: k, text: String(q['option' + k]) }; });
     return { questionId: String(q.questionId), question: String(q.question), options: shuffle(options) };
   });
-  return { ok: true, attemptId: attemptId, moduleId: moduleId, questions: questions };
+  return { ok: true, attemptId: attemptId, moduleId: moduleId, questions: questions, timeLimitSeconds: limit, secondsLeft: left };
 }
 
 function submitTest(name, attemptId, answers) {
@@ -209,7 +241,9 @@ function submitTest(name, attemptId, answers) {
 
   var correct = review.filter(function (r) { return r.isCorrect; }).length;
   var total = review.length;
-  var passed = total > 0 && correct / total >= passPercent / 100;
+  // Answers that arrive after the time limit (plus a short grace) do not pass.
+  var late = secondsLeft(att.issuedAt, timeLimitSeconds(ids.length)) < -GRACE_SECONDS;
+  var passed = !late && total > 0 && correct / total >= passPercent / 100;
   var scorePct = total ? Math.round((correct / total) * 100) : 0;
   var submittedAt = new Date();
 
@@ -220,7 +254,7 @@ function submitTest(name, attemptId, answers) {
   var rowNum = att._row;
   sheet.getRange(rowNum, cols.indexOf('submittedAt') + 1).setValue(submittedAt);
   sheet.getRange(rowNum, cols.indexOf('answersGiven') + 1, 1, 5).setValues([[
-    JSON.stringify(givenMap), correct, total, scorePct, passed ? 'PASS' : 'FAIL'
+    JSON.stringify(givenMap), correct, total, scorePct, passed ? 'PASS' : (late ? 'FAIL (late)' : 'FAIL')
   ]]);
 
   // Update progress. A fail means the module has to be read again.
@@ -247,6 +281,7 @@ function submitTest(name, attemptId, answers) {
     scorePct: scorePct,
     passed: passed,
     moduleId: moduleId,
+    late: late,
     attemptNumber: attemptNumber,
     review: review.map(function (r) {
       return {
@@ -496,6 +531,19 @@ function withLock(fn) {
 function isTrue(v) { return v === true || String(v).toUpperCase() === 'TRUE'; }
 
 function sameName(a, b) { return String(a).trim().toLowerCase() === String(b).trim().toLowerCase(); }
+
+function timeLimitSeconds(questionCount) {
+  var per = Number(getSettings().secondsPerQuestion);
+  if (!(per > 0)) per = 60;
+  return Math.round(per * questionCount);
+}
+
+// Seconds left on a test issued at issuedAt; negative once time is up.
+function secondsLeft(issuedAt, limit) {
+  var start = new Date(issuedAt).getTime();
+  if (isNaN(start)) return -Infinity;
+  return Math.floor(limit - (Date.now() - start) / 1000);
+}
 
 function shuffle(arr) {
   var a = arr.slice();

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Test</title>
-  <link rel="stylesheet" href="css/style.css?v=20261123a">
+  <link rel="stylesheet" href="css/style.css?v=20261123b">
 </head>
 <body>
   <header class="masthead">
@@ -12,6 +12,7 @@
     <div class="cells">
       <span class="cell"><span class="crumbs"><a href="index.html">Dashboard</a><span class="sep">&rsaquo;</span><span id="crumbModule">Module</span><span class="sep">&rsaquo;</span>Test</span></span>
       <span class="cell" id="answeredCell" aria-hidden="true"></span>
+      <span class="cell timer hidden" id="timerCell" aria-hidden="true"></span>
     </div>
   </header>
 
@@ -25,7 +26,7 @@
         <header class="test-head">
           <div class="row label"><span id="modLabel">Module</span><span id="countLabel"></span></div>
           <h1 id="testTitle"></h1>
-          <p>Choose one answer for each question, then submit.</p>
+          <p>Choose one answer for each question, then submit. <span id="timeRule"></span></p>
         </header>
 
         <form id="testForm" class="questions"></form>
@@ -33,7 +34,9 @@
         <div class="submit-bar">
           <div class="row">
             <span class="label" id="answeredCount" aria-live="polite"></span>
+            <span class="label timer" id="timerLabel"></span>
           </div>
+          <p class="sr-only" id="timerAnnounce" aria-live="assertive"></p>
           <div class="segments" id="segments" aria-hidden="true"></div>
           <p class="hint" id="submitHint"></p>
           <button type="button" class="btn full" id="submitBtn" disabled>Submit</button>
@@ -71,10 +74,10 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=20261123a"></script>
-  <script src="js/mock.js?v=20261123a"></script>
-  <script src="js/api.js?v=20261123a"></script>
-  <script src="js/app.js?v=20261123a"></script>
+  <script src="js/config.js?v=20261123b"></script>
+  <script src="js/mock.js?v=20261123b"></script>
+  <script src="js/api.js?v=20261123b"></script>
+  <script src="js/app.js?v=20261123b"></script>
   <script>
     (async function () {
       if (!App.requireLogin()) return;
@@ -120,6 +123,39 @@
         form.appendChild(fs);
       });
       $("testView").classList.remove("hidden");
+
+      // ---------- Timer ----------
+      // The server keeps the real clock; reloading the page carries on with
+      // the same time left. When it reaches zero the answers are sent as they are.
+      var deadline = Date.now() + test.secondsLeft * 1000;
+      var mins = Math.round(test.timeLimitSeconds / 60);
+      var allowed = test.timeLimitSeconds < 60 ? test.timeLimitSeconds + " seconds" : mins + " minute" + (mins === 1 ? "" : "s");
+      $("timeRule").textContent = "You have " + allowed + ". When time runs out, your answers are submitted as they are.";
+      $("timerCell").classList.remove("hidden");
+      var warned = false;
+      function tick() {
+        if (submitted) return;
+        var left = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+        var text = Math.floor(left / 60) + ":" + pad(left % 60);
+        $("timerCell").textContent = text + " left";
+        $("timerLabel").textContent = text + " left";
+        var low = left <= 60;
+        $("timerCell").classList.toggle("low", low);
+        $("timerLabel").classList.toggle("low", low);
+        if (low && !warned) { warned = true; $("timerAnnounce").textContent = "One minute left."; }
+        if (left === 0) { clearInterval(timerId); timeUp(); }
+      }
+      var timerId = setInterval(tick, 1000);
+      tick();
+
+      function timeUp() {
+        $("timerAnnounce").textContent = "Time is up. Submitting your answers.";
+        box.classList.add("hidden");
+        form.querySelectorAll("input").forEach(function (i) { i.disabled = true; });
+        $("submitBtn").disabled = true;
+        $("submitHint").textContent = "Time is up. Submitting your answers...";
+        sendAnswers();
+      }
 
       function collectAnswers() {
         var answers = {};
@@ -177,22 +213,31 @@
         }
       });
 
-      $("confirmBtn").addEventListener("click", async function () {
+      var sending = false;
+      async function sendAnswers() {
+        if (sending || submitted) return;
+        sending = true;
         var btn = $("confirmBtn");
         btn.disabled = true;
         btn.textContent = "Submitting...";
         var r = await Api.call("submitTest", { moduleId: moduleId, attemptId: test.attemptId, answers: collectAnswers() });
         box.classList.add("hidden");
+        sending = false;
         if (!r.ok) {
           btn.disabled = false;
           btn.textContent = "Submit";
           App.showMessage(r.error, true);
+          // After time is up the answers are locked; let them try sending again.
+          if (Date.now() >= deadline) { $("submitBtn").disabled = false; $("submitHint").textContent = "Time is up. Press Submit to send your answers."; }
           window.scrollTo(0, 0);
           return;
         }
         submitted = true;
+        clearInterval(timerId);
+        $("timerCell").classList.add("hidden");
         showResult(r);
-      });
+      }
+      $("confirmBtn").addEventListener("click", sendAnswers);
 
       // ---------- Result ----------
       function showResult(r) {
@@ -209,7 +254,8 @@
         $("scoreDetail").textContent = r.correct + " of " + r.total + " correct";
         $("verdict").innerHTML = r.passed
           ? "Passed. <em>The next module is now open.</em>"
-          : "Not passed. <em>Read the module again and retake the test.</em>";
+          : (r.late ? "Not passed: the answers arrived after the time limit. " : "Not passed. ") +
+            "<em>Read the module again and retake the test.</em>";
 
         var buttons = "<a class='btn' href='index.html'>Back to dashboard</a>";
         if (!r.passed) buttons += "<a class='btn outline' href='module.html?id=" + moduleId + "'>Read module again</a>";

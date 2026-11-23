@@ -48,6 +48,8 @@ Everything is in the Google Sheet, so no code changes are needed.
 - **Pass mark:** in the **Settings** tab, change `passPercent` (default 85).
 - **Admin email:** in the **Settings** tab, change `adminEmail`.
 - **Wait time per screen:** each screen waits 1 second for every 4 words on it. `minSecondsPerSection` in the **Settings** tab (default 20) is the shortest wait for any screen. The 4 words per second is `WORDS_PER_SECOND` in `js/config.js`.
+- **Test timer:** each test allows `secondsPerQuestion` (Settings tab, default 60) for every question, so 10 questions get 10 minutes. When time runs out the answers are submitted as they are. Reloading the page keeps the same questions and clock. Answers that arrive more than 30 seconds late are marked `FAIL (late)`.
+- **Retakes get new questions:** each module has 30 questions in the Questions tab. Each test draws 10, choosing questions the person has not seen yet first, so the first three attempts never repeat a question.
 - **Turn off a user:** set `active` to `FALSE` in the **Users** tab.
 
 Leave `siteUrl` in Settings as it is. The backend uses it to read `content/modules.json`.

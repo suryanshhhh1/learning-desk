@@ -135,15 +135,28 @@ window.MockBackend = (function () {
 
       var bank = QUESTIONS.filter(function (q) { return q[0] === mod2.id; });
       if (bank.length === 0) return { ok: false, error: "There are no questions for this module yet." };
-      var picked = shuffle(bank.slice()).slice(0, Math.min(mod2.questionsPerTest || 15, bank.length));
-      var attemptId = "A" + Date.now();
-      db.attempts.push({ attemptId: attemptId, name: name, moduleId: mod2.id, issuedAt: new Date().toISOString(), submittedAt: "", questionIds: picked.map(function (q) { return q[1]; }) });
-      save(db);
+      var count = Math.min(mod2.questionsPerTest || 15, bank.length);
+      // For testing the timer: localStorage "nabh.mock.secondsPerQuestion" overrides 60.
+      var limit = count * (Number(localStorage.getItem("nabh.mock.secondsPerQuestion")) || 60);
+      var leftOf = function (a) { return Math.floor(limit - (Date.now() - new Date(a.issuedAt).getTime()) / 1000); };
+      var open = db.attempts.filter(function (a) { return a.name === name && a.moduleId === mod2.id && !a.submittedAt && leftOf(a) > 0; }).pop();
+      var picked, attemptId, left;
+      if (open) {
+        attemptId = open.attemptId; left = leftOf(open);
+        picked = open.questionIds.map(function (id) { return bank.find(function (q) { return q[1] === id; }); });
+      } else {
+        picked = shuffle(bank.slice()).slice(0, count);
+        attemptId = "A" + Date.now(); left = limit;
+        db.attempts.push({ attemptId: attemptId, name: name, moduleId: mod2.id, issuedAt: new Date().toISOString(), submittedAt: "", questionIds: picked.map(function (q) { return q[1]; }) });
+        save(db);
+      }
 
       return {
         ok: true,
         attemptId: attemptId,
         moduleId: mod2.id,
+        timeLimitSeconds: limit,
+        secondsLeft: left,
         questions: picked.map(function (q) {
           var opts = [{ key: "A", text: q[3] }, { key: "B", text: q[4] }, { key: "C", text: q[5] }, { key: "D", text: q[6] }];
           return { questionId: q[1], question: q[2], options: shuffle(opts) };
