@@ -28,6 +28,9 @@ var DEFAULT_SETTINGS = [
   ['minSecondsPerSection', 20],
   // Time allowed for a test: this many seconds for each question.
   ['secondsPerQuestion', 60],
+  // Usernames (comma separated) who may see every question of a passed
+  // module, not only the ones they were asked. For a test account.
+  ['seeAllQuestions', 'Tester'],
   // The GitHub Pages address of the site. The backend reads
   // content/modules.json from here to know titles, which modules are
   // published and how many questions each test has.
@@ -292,7 +295,7 @@ function submitTest(name, attemptId, answers) {
   };
 }
 
-// All questions of a module with their correct answers and explanations.
+// The questions of a module this person was asked, with the correct answers and explanations.
 // Only for a module this user has passed, so the answer key stays hidden
 // until then.
 function reviewQuestions(name, moduleId) {
@@ -300,7 +303,17 @@ function reviewQuestions(name, moduleId) {
   if (!progress || !isTrue(progress.passed)) {
     return { ok: false, code: 'LOCKED', error: 'Pass this module\'s test to see its questions and answers.' };
   }
+  // Only the questions this person was actually given, across all of
+  // their submitted attempts, so the rest of the bank stays unseen.
+  var asked = {};
+  readRows('Attempts').forEach(function (a) {
+    if (!sameName(a.name, name) || Number(a.moduleId) !== moduleId || !a.submittedAt) return;
+    String(a.questionIds).split(',').forEach(function (id) { if (id) asked[id] = true; });
+  });
+  // Users listed in the seeAllQuestions setting (comma separated) see the whole bank.
+  var seeAll = String(getSettings().seeAllQuestions || '').split(',').some(function (n) { return n.trim() && sameName(n, name); });
   var questions = questionsFor(moduleId)
+    .filter(function (q) { return seeAll || asked[String(q.questionId)]; })
     .map(function (q) {
       var key = String(q.correct || '').trim().toUpperCase();
       return {

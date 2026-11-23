@@ -170,7 +170,11 @@ window.MockBackend = (function () {
       return {
         ok: true,
         moduleId: Number(req.moduleId),
-        questions: QUESTIONS.filter(function (q) { return q[0] === Number(req.moduleId); }).map(function (q) {
+        questions: QUESTIONS.filter(function (q) {
+          return q[0] === Number(req.moduleId) && db.attempts.some(function (a) {
+            return a.name === name && a.moduleId === Number(req.moduleId) && a.submittedAt && a.questionIds.indexOf(q[1]) !== -1;
+          });
+        }).map(function (q) {
           return {
             questionId: q[1], question: q[2], explanation: q[8],
             options: ["A", "B", "C", "D"].map(function (k, i) { return { text: q[3 + i], correct: k === q[7] }; })

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Test questions</title>
-  <link rel="stylesheet" href="css/style.css?v=20261123b">
+  <link rel="stylesheet" href="css/style.css?v=20261123c">
 </head>
 <body>
   <header class="masthead">
@@ -24,7 +24,7 @@
         <header class="test-head">
           <div class="row label"><span id="modLabel">Module</span><span id="countLabel"></span></div>
           <h1 id="title"></h1>
-          <p>Every question in this module's test, with the correct answer and why.</p>
+          <p>The questions you were asked in this module's tests, with the correct answer and why.</p>
         </header>
 
         <div class="review" id="list"></div>
@@ -36,10 +36,10 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=20261123b"></script>
-  <script src="js/mock.js?v=20261123b"></script>
-  <script src="js/api.js?v=20261123b"></script>
-  <script src="js/app.js?v=20261123b"></script>
+  <script src="js/config.js?v=20261123c"></script>
+  <script src="js/mock.js?v=20261123c"></script>
+  <script src="js/api.js?v=20261123c"></script>
+  <script src="js/app.js?v=20261123c"></script>
   <script>
     (async function () {
       if (!App.requireLogin()) return;
@@ -61,6 +61,7 @@
 
       $("modLabel").textContent = "Module " + pad(moduleId) + " test";
       $("countLabel").textContent = res.questions.length + " questions";
+      if (!res.questions.length) App.showMessage("There is no record of the questions you were asked in this module's test.");
       $("title").textContent = mod ? mod.title : "Module " + moduleId;
 
       $("list").innerHTML = res.questions.map(function (q, i) {
